@@ -3,7 +3,7 @@
 <head>
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
-    <title>ShadowChat Lite</title>
+    <title>CmertGram</title>
     
     <script src="https://cdn.socket.io/4.7.2/socket.io.min.js"></script>
     <script src="https://cdnjs.cloudflare.com/ajax/libs/crypto-js/4.2.0/crypto-js.min.js"></script>
@@ -102,6 +102,7 @@
             border-right: 1px solid var(--color-public-bg);
             overflow-y: auto;
             flex-shrink: 0;
+            position: relative; /* Для позиционирования меню */
         }
 
         #users-panel h3 {
@@ -136,6 +137,43 @@
             background-color: var(--color-secondary);
             color: white;
         }
+        
+        /* Меню действий пользователя */
+        #user-action-menu {
+            position: fixed; 
+            background-color: var(--color-input);
+            border: 1px solid var(--color-secondary);
+            border-radius: 5px;
+            box-shadow: 0 4px 8px rgba(0, 0, 0, 0.5);
+            z-index: 1001;
+            display: none;
+            padding: 5px 0;
+            min-width: 150px;
+        }
+
+        #user-action-menu button {
+            display: flex;
+            align-items: center;
+            width: 100%;
+            text-align: left;
+            padding: 10px 15px;
+            background: none;
+            border: none;
+            color: var(--color-text);
+            cursor: pointer;
+            font-size: 14px;
+            transition: background-color 0.2s;
+        }
+        
+        #user-action-menu button span {
+            margin-left: 8px;
+        }
+
+        #user-action-menu button:hover {
+            background-color: var(--color-secondary);
+            color: white;
+        }
+
 
         /* Панель чата */
         #main-chat {
@@ -314,8 +352,12 @@
 </head>
 <body>
 
+    <div id="user-action-menu">
+        </div>
+
+
     <div id="registration-screen">
-        <h1>ShadowChat Lite</h1>
+        <h1>CmertGram</h1>
         <p>Выберите ваш никнейм (без пароля/email):</p>
         <input type="text" id="nickname-input" placeholder="Ваш никнейм" maxlength="15">
         <button id="register-button">Войти в чат</button>
@@ -351,14 +393,13 @@
     <script>
         // --- Настройки и переменные ---
         
-        // !!! ВАЖНО для Render: Подключение к текущему домену
         const socket = io({
              transports: ['websocket'] 
         });
 
-        const AES_KEY = 'Это_Очень_Секретный_Ключ_AES'; // Статический ключ для демонстрации
+        const AES_KEY = 'Это_Очень_Секретный_Ключ_AES'; 
         let myNickname = '';
-        let currentRecipient = null; // null = Общий чат
+        let currentRecipient = null; 
         let lastUserList = [];
 
         // --- DOM элементы ---
@@ -375,10 +416,17 @@
         const recipientIndicator = document.getElementById('recipient-indicator');
         const currentRecipientSpan = document.getElementById('current-recipient');
         const exitPrivateLink = document.getElementById('exit-private');
+        const actionMenu = document.getElementById('user-action-menu');
 
+        // Глобальный обработчик для скрытия меню
+        document.addEventListener('click', (e) => {
+            if (actionMenu.style.display === 'block' && !actionMenu.contains(e.target) && !e.target.closest('#users-list li:not(.me)')) {
+                actionMenu.style.display = 'none';
+            }
+        });
+        
         // --- Crypto (Шифрование/Дешифрование) ---
         
-        /** Шифрует строку с помощью AES */
         function encrypt(text) {
             try {
                 const key = CryptoJS.enc.Utf8.parse(AES_KEY);
@@ -393,7 +441,6 @@
             }
         }
 
-        /** Дешифрует строку с помощью AES */
         function decrypt(encryptedText) {
             try {
                 const key = CryptoJS.enc.Utf8.parse(AES_KEY);
@@ -409,13 +456,48 @@
         }
 
         // --- Функции UI ---
+        
+        function showUserActionMenu(user, event) {
+            actionMenu.style.display = 'none'; 
+            
+            actionMenu.innerHTML = `
+                <button onclick="startPrivateChat('${user}'); hideActionMenu();">💬 Сообщение</button>
+                <button onclick="startCall('${user}'); hideActionMenu();">📞 Звонок (Заглушка)</button>
+            `;
+            
+            actionMenu.style.top = `${event.clientY}px`;
+            
+            const panelRect = usersList.getBoundingClientRect();
+            const menuWidth = 150; 
+            if (event.clientX + menuWidth > panelRect.right) {
+                 actionMenu.style.left = `${panelRect.right - menuWidth}px`;
+            } else {
+                 actionMenu.style.left = `${event.clientX}px`;
+            }
 
-        /** Прокрутка чата вниз */
+            actionMenu.style.display = 'block';
+            
+            event.preventDefault(); 
+        }
+
+        function hideActionMenu() {
+            actionMenu.style.display = 'none';
+        }
+        
+        function startCall(recipient) {
+            const time = new Date().toLocaleTimeString('ru-RU', { hour: '2-digit', minute: '2-digit' });
+            const msg = {
+                 type: 'system', 
+                 sender: 'Система', 
+                 content: `📞 Вы пытаетесь позвонить пользователю **${recipient}**... (Функция не реализована). Время: ${time}` 
+            };
+            addMessage(msg, true);
+        }
+
         function scrollToBottom() {
             messagesDiv.scrollTop = messagesDiv.scrollHeight;
         }
 
-        /** Добавление сообщения в UI */
         function addMessage(msg, isSelf = false, recipient = null) {
             const isSystem = msg.type === 'system';
             const isPrivate = msg.type === 'private';
@@ -436,7 +518,9 @@
             const content = isSystem ? msg.content : decrypt(msg.content);
             
             if (isSystem) {
-                messageDiv.innerHTML = `<div class="message-content">${content}</div>`;
+                // Заменяем **текст** на <strong>текст</strong> для системных сообщений
+                const formattedContent = content.replace(/\*\*(.*?)\*\*/g, '<strong>$1</strong>');
+                messageDiv.innerHTML = `<div class="message-content">${formattedContent}</div>`;
             } else {
                 let senderText = isPrivate && isSelf ? `Вы (для ${recipient})` : 
                                  isPrivate && !isSelf ? `🔒 ${msg.sender} (Приватно)` : 
@@ -453,7 +537,6 @@
             scrollToBottom();
         }
 
-        /** Обновление списка онлайн-пользователей */
         function updateUsersList(users) {
             lastUserList = users;
             usersList.innerHTML = '';
@@ -470,7 +553,9 @@
                 if (user === myNickname) {
                     li.classList.add('me');
                 } else {
-                    li.onclick = () => startPrivateChat(user);
+                    // Обработчик контекстного меню (правая/левая кнопка мыши)
+                    li.oncontextmenu = (e) => showUserActionMenu(user, e); 
+                    li.onclick = (e) => showUserActionMenu(user, e); 
                 }
                 if (user === currentRecipient) {
                      li.classList.add('selected');
@@ -479,7 +564,6 @@
             });
         }
         
-        /** Начинает приватный чат */
         function startPrivateChat(recipient) {
             if (recipient === myNickname) return;
             currentRecipient = recipient;
@@ -491,7 +575,6 @@
             messageInput.focus();
         }
         
-        /** Возвращается в общий чат */
         function exitPrivateChat() {
             currentRecipient = null;
             chatHeader.textContent = 'Общий Чат (Default)';
@@ -585,12 +668,10 @@
             const recipientNickname = msg.recipient;
             
             if (isSelf) {
-                // Если мы отправитель, показываем, если мы в этом приватном чате или в общем
                 if (currentRecipient === recipientNickname || currentRecipient === null) {
                     addMessage(msg, true, recipientNickname);
                 }
             } else {
-                // Если мы получатель, показываем, если мы в этом приватном чате или в общем
                 if (currentRecipient === msg.sender || currentRecipient === null) {
                     addMessage(msg, false);
                 } else {
