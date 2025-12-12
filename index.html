@@ -3,474 +3,1006 @@
 <head>
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
-    <title>[INIT] NEON CYBER CONFERENCE v1.0.4</title>
+    <title>SECURE MESH CONFERENCE v6.666</title>
     <script src="https://cdn.jsdelivr.net/npm/simple-peer@9.11.1/simplepeer.min.js"></script> 
+    <link href="https://fonts.googleapis.com/icon?family=Material+Icons" rel="stylesheet">
+    
     <style>
-        /* [NEON_CYBER_STYLE] */
+        /* [CYBER_MOD_STYLE] (Telegram/WhatsApp Dark + Blue/Yellow/Green) */
         :root {
-            --bg-color: #111115;
-            --main-neon: #33ccff; /* Neon Blue */
-            --accent-neon: #ff66cc; /* Neon Pink */
-            --font-color: #e0e0ff;
-            --font-mono: 'Consolas', 'Monospace', monospace;
+            --bg-color: #0c131b; 
+            --side-panel-bg: #111b21;
+            --chat-bg: #131d23;
+            --input-bg: #2a3942;
+            --text-color: #e9edef;
+            --secondary-text: #8696a0;
+            --primary-color: #0088cc; /* Telegram Blue */
+            --danger-color: #e34c4c;
+            --success-color: #005c4b; /* WhatsApp Green */
+            --accent-color: #fec007; /* Yellow/Gold Accent */
+            --sent-bubble-bg: var(--success-color);
+            --received-bubble-bg: #2a3942;
+            --font-main: 'Segoe UI', Roboto, Helvetica, Arial, sans-serif;
+            --header-bg: #1f2c34;
         }
 
         body {
             background-color: var(--bg-color);
-            color: var(--font-color);
-            font-family: var(--font-mono);
+            color: var(--text-color);
+            font-family: var(--font-main);
             margin: 0;
-            padding: 20px;
+            display: flex;
+            justify-content: center;
+            align-items: center;
+            min-height: 100vh;
+            overflow: hidden;
+        }
+
+        .main-container {
+            width: 95%;
+            height: 95vh;
+            display: flex;
+            border-radius: 8px;
+            overflow: hidden;
+            box-shadow: 0 4px 12px rgba(0, 0, 0, 0.5);
+            max-width: 1600px;
+        }
+
+        /* --- LEFT PANEL: USER LIST / NICKNAME FORM --- */
+        .left-panel {
+            width: 300px;
+            min-width: 250px;
+            background-color: var(--side-panel-bg);
+            border-right: 1px solid rgba(255, 255, 255, 0.05);
             display: flex;
             flex-direction: column;
-            min-height: 100vh;
-        }
-
-        .main-grid {
-            max-width: 1400px;
-            margin: 0 auto;
-            width: 100%;
-            border: 2px solid var(--main-neon);
-            box-shadow: 0 0 15px var(--main-neon);
-            padding: 15px;
-            display: grid;
-            grid-template-columns: 3fr 1fr;
-            gap: 20px;
-            flex-grow: 1;
         }
         
-        h3 {
-            color: var(--accent-neon);
-            text-shadow: 0 0 5px var(--accent-neon);
-            border-bottom: 1px solid var(--accent-neon);
-            padding-bottom: 5px;
-            margin-top: 0;
-        }
-
-        /* --- NICKNAME FORM --- */
-        #nick_form {
+        .panel-header {
+            background-color: var(--header-bg);
             padding: 15px;
-            margin-bottom: 20px;
-            border: 1px dashed var(--main-neon);
-            text-align: center;
+            color: var(--text-color);
+            font-weight: 600;
+            border-bottom: 1px solid rgba(255, 255, 255, 0.05);
         }
 
-        /* --- VIDEO/CALLS SECTION --- */
+        #user_list_box {
+            overflow-y: auto;
+            flex-grow: 1;
+            padding: 0;
+            list-style: none;
+            margin: 0;
+        }
+        .user-item {
+            display: flex;
+            align-items: center;
+            padding: 10px 15px;
+            border-bottom: 1px solid rgba(255, 255, 255, 0.03);
+            cursor: default;
+        }
+        .user-item .status-icon {
+            width: 10px;
+            height: 10px;
+            border-radius: 50%;
+            margin-right: 10px;
+            background-color: var(--accent-color); /* Yellow for connected */
+        }
+        
+        #nick_form {
+            padding: 20px;
+            background-color: var(--header-bg);
+            text-align: center;
+            border-bottom: 1px solid rgba(255, 255, 255, 0.05);
+        }
+        
+        /* --- RIGHT PANEL: VIDEO / CHAT --- */
+        .right-panel {
+            flex-grow: 1;
+            display: flex;
+            flex-direction: column;
+            background-color: var(--chat-bg);
+        }
+
+        .video-controls-header {
+            background-color: var(--header-bg);
+            padding: 10px 15px;
+            display: flex;
+            justify-content: space-between;
+            align-items: center;
+            border-bottom: 1px solid rgba(255, 255, 255, 0.05);
+        }
+        
         .video-grid {
+            min-height: 100px;
+            max-height: 35vh;
             display: grid;
-            grid-template-columns: repeat(auto-fit, minmax(280px, 1fr));
-            gap: 10px;
-            min-height: 400px;
-            border: 1px solid var(--main-neon);
-            padding: 10px;
-            background-color: #0d0d10;
+            grid-template-columns: repeat(auto-fit, minmax(150px, 1fr));
+            gap: 5px;
+            padding: 5px;
+            background-color: #000000;
+            border-bottom: 1px solid rgba(255, 255, 255, 0.05);
+            overflow: hidden;
+            flex-shrink: 0;
         }
         
         .video-wrapper {
             position: relative;
-            background-color: #1a1a20;
-            border: 2px solid var(--accent-neon);
+            background-color: #000;
+            border: 1px solid rgba(255, 255, 255, 0.1);
             box-sizing: border-box;
-            aspect-ratio: 16 / 9; /* Стандартизация соотношения */
+            aspect-ratio: 16 / 9;
             overflow: hidden;
+            border-radius: 4px;
         }
-        
         .video-wrapper video {
             width: 100%;
             height: 100%;
             object-fit: cover;
             display: block;
         }
-        
         .video-label {
             position: absolute;
-            top: 0;
+            bottom: 0;
             left: 0;
-            background-color: rgba(0, 0, 0, 0.7);
-            color: var(--main-neon);
-            padding: 4px 8px;
-            font-size: 0.9em;
-            border-bottom-right-radius: 5px;
-            text-shadow: 0 0 2px var(--main-neon);
+            background-color: rgba(0, 0, 0, 0.6);
+            color: var(--text-color);
+            padding: 2px 6px;
+            font-size: 0.75em;
+            border-top-right-radius: 4px;
         }
 
-        /* --- CHAT SECTION --- */
-        .right-panel {
-            display: flex;
-            flex-direction: column;
-        }
-
+        /* --- CHAT BOX --- */
         .chat-box {
-            height: 70vh; /* Увеличение высоты чата */
-            overflow-y: auto;
-            margin-bottom: 10px;
-            padding: 10px;
-            border: 1px solid var(--accent-neon);
-            background-color: #0d0d10;
             flex-grow: 1;
+            padding: 10px 15px;
+            overflow-y: auto;
+            display: flex;
+            flex-direction: column-reverse; 
+            /* Simple chat pattern background */
+            background-image: url('data:image/svg+xml;utf8,<svg xmlns="http://www.w3.org/2000/svg" width="300" height="300" viewBox="0 0 300 300"><defs><pattern id="p" width="100" height="100" patternUnits="userSpaceOnUse"><rect width="100" height="100" fill="%23131D23"/><path d="M0 0h100v100H0z" fill="none" stroke="%231a202c" stroke-width="0.5"/></pattern></defs><rect width="100%" height="100%" fill="url(%23p)"/></svg>');
+            background-size: 150px 150px;
+            background-color: var(--chat-bg);
+        }
+        .chat-box > div { 
+            display: flex; 
+            margin: 5px 0; 
+            width: 100%;
+        }
+        .message-bubble {
+            padding: 8px 10px;
+            border-radius: 8px;
+            max-width: 65%;
+            word-wrap: break-word;
+            font-size: 0.95em;
+            position: relative;
+            box-shadow: 0 1px 0.5px rgba(0, 0, 0, 0.13);
+        }
+        .message-bubble strong {
+            display: block;
+            font-weight: 600;
+            font-size: 0.8em;
+            margin-bottom: 2px;
+            color: var(--primary-color); 
         }
 
-        /* --- MESSAGE STYLES --- */
+        .sent-message { justify-content: flex-end; }
+        .sent-message .message-bubble {
+            background-color: var(--sent-bubble-bg);
+            color: var(--text-color);
+            border-bottom-right-radius: 0;
+        }
+
+        .received-message { justify-content: flex-start; }
+        .received-message .message-bubble {
+            background-color: var(--received-bubble-bg);
+            color: var(--text-color);
+            border-bottom-left-radius: 0;
+        }
         .system-message { 
-            color: #ffaa00; /* Yellow */
-            font-weight: bold; 
+            text-align: center;
+            font-style: italic;
+            color: var(--accent-color); /* Yellow for system info */
+            font-size: 0.85em;
+            width: 100%;
+            margin: 10px 0;
         }
-        .user-message {
-            margin: 5px 0;
-            word-wrap: break-word;
+
+        /* VOICE MESSAGE STYLES */
+        .voice-message-container {
+            display: flex;
+            align-items: center;
+            min-width: 150px;
         }
-        .user-message strong { 
-            color: var(--main-neon); 
-            margin-right: 5px; 
+        .voice-message-container audio {
+            flex-grow: 1;
+            height: 30px;
+            filter: invert(100%) sepia(0%) saturate(7484%) hue-rotate(205deg) brightness(100%) contrast(100%); /* Make audio controls visible in dark theme */
+        }
+        .voice-icon {
+            margin-right: 5px;
+            color: var(--text-color);
         }
 
         /* --- INPUTS & BUTTONS --- */
-        input[type="text"], button {
-            background-color: #222225;
-            color: var(--font-color);
-            border: 1px solid var(--main-neon);
+        .message-input-area { 
+            display: flex; 
+            padding: 8px 15px; 
+            background-color: var(--header-bg);
+            align-items: center;
+        }
+        
+        input[type="text"] {
+            flex-grow: 1;
+            background-color: var(--input-bg);
+            color: var(--text-color);
+            border: none;
+            padding: 10px 15px;
+            font-family: inherit;
+            border-radius: 20px;
+            margin: 0 8px;
+            font-size: 1em;
+            line-height: 1.2;
+        }
+        
+        button {
+            background-color: var(--primary-color);
+            color: var(--bg-color);
+            border: none;
             padding: 10px;
             font-family: inherit;
-            box-shadow: 0 0 5px rgba(51, 204, 255, 0.5);
-            transition: all 0.2s;
-        }
-        
-        button:hover:not(:disabled) {
-            background-color: var(--main-neon);
-            color: var(--bg-color);
+            border-radius: 50%;
+            font-weight: 600;
             cursor: pointer;
-            box-shadow: 0 0 15px var(--main-neon);
+            transition: background-color 0.2s;
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            width: 40px;
+            height: 40px;
+            flex-shrink: 0;
+        }
+        button:hover:not(:disabled) {
+            background-color: #0070a8; 
+        }
+        button:disabled {
+            background-color: var(--input-bg);
+            color: var(--secondary-text);
+            cursor: not-allowed;
+            opacity: 0.7;
         }
         
-        button:disabled {
-            opacity: 0.5;
-            cursor: not-allowed;
+        /* Кнопка записи */
+        #recordToggle {
+            background-color: var(--input-bg);
+            color: var(--secondary-text);
+            transition: background-color 0.2s, box-shadow 0.5s;
+        }
+        #recordToggle.recording {
+            background-color: var(--danger-color);
+            color: var(--text-color);
+            animation: pulse 1s infinite alternate;
+        }
+        
+        @keyframes pulse {
+            from { box-shadow: 0 0 0 0 rgba(227, 76, 76, 0.7); }
+            to { box-shadow: 0 0 0 8px rgba(227, 76, 76, 0); }
         }
 
-        .message-input { 
-            display: flex; 
-            margin-top: auto; /* Прижимаем ко дну */
-        }
-        .message-input input { 
-            flex-grow: 1; 
-            margin-right: 5px; 
+        .material-icons {
+            font-size: 24px;
         }
         
         .call-controls button {
-            margin-right: 10px;
-            margin-top: 10px;
-            border-color: var(--accent-neon);
-            box-shadow: 0 0 5px rgba(255, 102, 204, 0.5);
+            background-color: var(--input-bg);
+            color: var(--text-color);
+            border-radius: 50%;
+            width: 40px;
+            height: 40px;
+            padding: 0;
+            margin-left: 5px;
+        }
+        .call-controls button:hover:not(:disabled) {
+            background-color: var(--primary-color);
+            color: var(--bg-color);
+        }
+
+        /* --- MOBILE ADAPTATION --- */
+        @media (max-width: 768px) {
+            body { 
+                align-items: stretch;
+                padding: 0;
+                min-height: 100vh;
+                height: 100vh;
+                overflow: hidden;
+            }
+            .main-container {
+                width: 100%;
+                height: 100vh;
+                border-radius: 0;
+                flex-direction: column;
+                max-width: none;
+                box-shadow: none;
+            }
+            .left-panel {
+                position: fixed;
+                top: 0;
+                left: 0;
+                width: 70%;
+                max-width: 300px;
+                height: 100vh;
+                z-index: 100;
+                transform: translateX(-100%);
+                transition: transform 0.3s ease-in-out;
+            }
+            .left-panel.active {
+                transform: translateX(0);
+                box-shadow: 4px 0 10px rgba(0, 0, 0, 0.5);
+            }
+            .right-panel {
+                width: 100%;
+                height: 100vh;
+            }
+            .video-grid {
+                max-height: 25vh;
+                grid-template-columns: repeat(auto-fit, minmax(100px, 1fr));
+            }
+            .video-controls-header {
+                padding: 8px;
+            }
+            .call-controls button, #send_button, #recordToggle {
+                width: 35px;
+                height: 35px;
+                padding: 8px;
+            }
+            .material-icons {
+                font-size: 20px;
+            }
+            input[type="text"] {
+                padding: 8px 12px;
+            }
+            #sidebar_toggle {
+                display: flex; /* Show the toggle button on mobile */
+            }
+            /* Overlay for mobile when sidebar is open */
+            .overlay {
+                position: fixed;
+                top: 0;
+                left: 0;
+                width: 100%;
+                height: 100%;
+                background: rgba(0, 0, 0, 0.5);
+                z-index: 90;
+                display: none;
+            }
+            .overlay.active {
+                display: block;
+            }
+        }
+        
+        /* Desktop: Hide the toggle button */
+        @media (min-width: 769px) {
+            #sidebar_toggle {
+                display: none !important;
+            }
         }
     </style>
 </head>
 <body>
-
-    <div class="main-grid">
+    <div class="overlay" id="overlay" onclick="toggleSidebar()"></div>
+    
+    <div class="main-container">
         
-        <div class="left-panel">
-            <h3 id="conference_status">[NEON_CYBER_CORE] STATUS: OFFLINE</h3>
+        <div class="left-panel" id="left_panel">
+            <div class="panel-header" id="conference_status">
+                [СИСТЕМА] ОФФЛАЙН
+            </div>
 
-            <div class="form-group" id="nick_form">
-                <input type="text" id="nickname_input" placeholder=">>> ВВЕДИ СВОЙ НИК/CALLSIGN" required>
-                <button onclick="saveNickname()">[АКТИВИРОВАТЬ КОНФЕРЕНЦИЮ]</button>
+            <div id="nick_form">
+                <input type="text" id="nickname_input" placeholder="Введите Ваш УНИКАЛЬНЫЙ ID (Ник)" required>
+                <button onclick="saveNickname()" id="nick_button" style="width: 100%; margin-top: 10px;">
+                    <i class="material-icons">login</i> АКТИВИРОВАТЬ
+                </button>
             </div>
             
-            <div class="call-controls" style="display: none;" id="controls_block">
-                <h3>[МЕДИА-КОНТРОЛЛЕР]</h3>
-                <button id="hangupButton" onclick="hangUp()">[ОТКЛЮЧИТЬ ВСЕ]</button>
-                <button id="audioToggle" onclick="toggleAudio()">[ВЫКЛ. МИКР.]</button>
-                <button id="videoToggle" onclick="toggleVideo()">[ВЫКЛ. ВИДЕО]</button>
+            <div class="panel-header" style="cursor: pointer;" onclick="toggleSidebar()">
+                Участники P2P <span id="user_count" style="color: var(--accent-color); margin-left: 5px;">(0)</span>
             </div>
-            
-            <div class="video-grid" id="video_grid">
-                </div>
+            <ul id="user_list_box">
+                </ul>
         </div>
 
         <div class="right-panel">
-            <h3>[ГЛОБАЛЬНЫЙ ТЕКСТ-ЧАТ (SMS)]</h3>
-            <div class="chat-box" id="chat_box">
+            
+            <div class="video-controls-header" style="display: none;" id="controls_block_header">
+                <button onclick="toggleSidebar()" id="sidebar_toggle" title="Список участников">
+                    <i class="material-icons">menu</i>
+                </button>
+                <div style="font-size: 0.9em;">
+                    <span id="call_status">СЕТЬ: ОЖИДАНИЕ МЕДИА</span>
                 </div>
+                <div class="call-controls">
+                    <button id="hangupButton" onclick="hangUp()" title="Завершить все">
+                        <i class="material-icons">call_end</i>
+                    </button>
+                    <button id="audioToggle" onclick="toggleAudio()" title="Микрофон">
+                        <i class="material-icons">mic</i>
+                    </button>
+                    <button id="videoToggle" onclick="toggleVideo()" title="Камера">
+                        <i class="material-icons">videocam</i>
+                    </button>
+                </div>
+            </div>
 
-            <div class="message-input">
-                <input type="text" id="message_input" placeholder=">>> СООБЩЕНИЕ (Enter для отправки)" onkeydown="if(event.keyCode===13) sendMessage()" disabled>
-                <button onclick="sendMessage()" id="send_button" disabled>[ПЕРЕДАТЬ]</button>
+            <div class="video-grid" id="video_grid">
+                </div>
+            
+            <div class="chat-box" id="chat_box">
+                <div class="system-message">
+                    [СИСТЕМА] Введите уникальный ID (Ник) и нажмите АКТИВИРОВАТЬ для начала работы.
+                </div>
+            </div>
+
+            <div class="message-input-area">
+                <button id="recordToggle" onclick="toggleRecording()" disabled title="Голосовое сообщение">
+                    <i class="material-icons" id="record_icon">mic_none</i>
+                </button>
+                <input type="text" id="message_input" placeholder="Сообщение (SMS) / Enter для отправки" onkeydown="if(event.keyCode===13) sendMessage()" disabled>
+                <button id="send_button" onclick="sendMessage()" disabled>
+                    <i class="material-icons">send</i>
+                </button>
             </div>
         </div>
     </div>
-
+    
     <script>
         // ГЛОБАЛЬНЫЕ ПЕРЕМЕННЫЕ
-        let ws;
-        let peerId; 
-        let nickname;
-        let localStream;
-        const peers = new Map(); // { peerId: simple-peer_instance }
-        let allUsers = new Map(); // { peerId: { id, nickname } }
+        let nickname = null;
+        let ws = null;
+        let peers = {}; // { nickname: SimplePeerInstance }
+        let stream = null;
+        let mediaRecorder = null;
+        let audioChunks = [];
 
-        // ЭЛЕМЕНТЫ DOM
-        const chatBox = document.getElementById('chat_box');
-        const messageInput = document.getElementById('message_input');
-        const sendButton = document.getElementById('send_button');
-        const nicknameInput = document.getElementById('nickname_input');
-        const nickForm = document.getElementById('nick_form');
-        const controlsBlock = document.getElementById('controls_block');
-        const conferenceStatus = document.getElementById('conference_status');
-        const videoGrid = document.getElementById('video_grid');
-        const hangupButton = document.getElementById('hangupButton');
-        const audioToggle = document.getElementById('audioToggle');
-        const videoToggle = document.getElementById('videoToggle');
+        const CHAT_BOX = document.getElementById('chat_box');
+        const USER_LIST_BOX = document.getElementById('user_list_box');
+        const VIDEO_GRID = document.getElementById('video_grid');
+        const STATUS_DISPLAY = document.getElementById('conference_status');
+        const CALL_STATUS_DISPLAY = document.getElementById('call_status');
+        const CONTROLS_BLOCK_HEADER = document.getElementById('controls_block_header');
+        const RECORD_TOGGLE = document.getElementById('recordToggle');
+        const MESSAGE_INPUT = document.getElementById('message_input');
+        const SEND_BUTTON = document.getElementById('send_button');
 
-        // [INIT] ГЕНЕРАЦИЯ УНИКАЛЬНОГО ID И WEB SOCKET
-        peerId = 'PEER_' + Math.random().toString(36).substring(2, 9).toUpperCase();
-        
-        function initWebSocket() {
-            conferenceStatus.innerHTML = `[NEON_CYBER_CORE] STATUS: CONNECTING... (PEER: ${peerId})`;
-            const protocol = window.location.protocol === 'https:' ? 'wss:' : 'ws:';
-            // Используем host (localhost:3000 или домен)
-            ws = new WebSocket(`${protocol}//${window.location.host}`); 
+        // --- 1. УПРАВЛЕНИЕ НИКНЕЙМОМ (УНИКАЛЬНЫЙ ID) ---
 
-            ws.onopen = function() {
-                conferenceStatus.innerHTML = `[NEON_CYBER_CORE] STATUS: WAITING FOR CALLSIGN. (PEER: ${peerId})`;
-                displayMessage({ type: 'SYSTEM', message: 'СОЕДИНЕНИЕ УСТАНОВЛЕНО. ВВЕДИТЕ НИК ДЛЯ АКТИВАЦИИ СИСТЕМ.' });
-                
-                // Автозаполнение ника, если есть в localStorage
-                const savedNick = localStorage.getItem('nickname');
-                if (savedNick) {
-                    nicknameInput.value = savedNick;
-                }
-            };
-
-            ws.onmessage = function(event) {
-                try {
-                    const data = JSON.parse(event.data);
-                    handleIncomingMessage(data);
-                } catch (e) {
-                    displayMessage({ type: 'ERROR', message: 'ОШИБКА ДАННЫХ: INCOMING DATA CORRUPTED.' });
-                }
-            };
-            
-            ws.onclose = function() {
-                conferenceStatus.innerHTML = `[NEON_CYBER_CORE] STATUS: OFFLINE. (PEER: ${peerId})`;
-                hangUp(false); // Очищаем интерфейс
-                displayMessage({ type: 'SYSTEM', message: 'СВЯЗЬ ПОТЕРЯНА. RESTARTING PROTOCOLS...' });
-                messageInput.disabled = true;
-                sendButton.disabled = true;
-                nickForm.style.display = 'block';
-                controlsBlock.style.display = 'none';
-            };
-        }
-
-        // [NICKNAME_HANDLER] Сохранение ника, запуск медиа и регистрация
-        async function saveNickname() {
-            const nick = nicknameInput.value.trim().toUpperCase();
-
-            if (nick.length < 2) {
-                alert("NICKNAME_ERROR: МИНИМУМ 2 СИМВОЛА");
+        function saveNickname() {
+            const input = document.getElementById('nickname_input');
+            const nick = input.value.trim();
+            if (!nick) {
+                alert('ID (Ник) не может быть пустым.');
                 return;
             }
-
             nickname = nick;
-            localStorage.setItem('nickname', nickname);
-            
-            // 1. Скрытие формы и активация контролов
-            nickForm.style.display = 'none';
-            controlsBlock.style.display = 'block';
-            messageInput.disabled = false;
-            sendButton.disabled = false;
-            messageInput.focus();
-            
-            conferenceStatus.innerHTML = `[NEON_CYBER_CORE] STATUS: ONLINE | CALLSIGN: ${nickname}`;
-            
-            // 2. Получение локального потока (АУДИО + ВИДЕО)
-            try {
-                await initLocalMedia();
-            } catch (e) {
-                displayMessage({ type: 'ERROR', message: `МЕДИА-ОШИБКА: ${e.name}. ГОЛОС/ВИДЕО НЕДОСТУПНЫ.` });
-            }
-            
-            // 3. Регистрация в глобальном чате (запуск Mesh-протокола)
-            if (ws.readyState === WebSocket.OPEN) {
-                 ws.send(JSON.stringify({
-                    type: 'REGISTER',
-                    peerId: peerId,
-                    sender: nickname
-                }));
-                displayMessage({ type: 'SYSTEM', message: `СИСТЕМА АКТИВИРОВАНА. CALLSIGN: ${nickname}. УСТАНОВКА P2P СОЕДИНЕНИЙ...` });
-            }
-        }
-        
-        // [MEDIA] Инициализация локального потока
-        async function initLocalMedia() {
-            localStream = await navigator.mediaDevices.getUserMedia({ video: true, audio: true });
-            
-            // Создание элемента для локального видео
-            const localWrapper = createVideoWrapper(peerId, nickname + ' (ТЫ)');
-            const localVideo = localWrapper.querySelector('video');
-            localVideo.muted = true; // Отключаем звук для своего видео
-            localVideo.srcObject = localStream;
-            videoGrid.prepend(localWrapper); // Свой поток всегда первый
-            
-            // Активация контролов
-            hangupButton.disabled = false;
-            audioToggle.disabled = false;
-            videoToggle.disabled = false;
+            initializeWebSocket(nickname);
+            input.disabled = true;
+            document.getElementById('nick_button').disabled = true;
         }
 
-        // [WS_RECEIVE] Обработка входящих WS-сообщений
-        function handleIncomingMessage(data) {
-            switch (data.type) {
-                case 'SYSTEM':
-                case 'CHAT_MESSAGE':
-                    displayMessage(data);
-                    break;
-                case 'USER_LIST_UPDATE':
-                    updateUserList(data.users);
-                    break;
-                case 'USER_LEFT':
-                    removePeer(data.leftId);
-                    displayMessage({ type: 'SYSTEM', message: `ПОЛЬЗОВАТЕЛЬ ОТКЛЮЧИЛСЯ: ${allUsers.get(data.leftId)?.nickname || data.leftId}` });
-                    allUsers.delete(data.leftId); // Удаляем из списка
-                    break;
-                case 'WEBRTC_SIGNAL':
-                    handleSignal(data.senderId, data.signal);
-                    break;
-            }
-        }
+        // --- 2. WEBSOCKET И СИГНАЛИНГ СЕРВЕРА ---
 
-        // [USER_LIST] Обновление списка активных пользователей и синхронизация P2P
-        function updateUserList(users) {
-            const newUsersMap = new Map();
-            users.forEach(u => newUsersMap.set(u.id, u));
+        function initializeWebSocket(nick) {
+            // Подключение к WebSocket на том же хосте и порту (предполагаем, что сервер запущен на 8080)
+            const protocol = window.location.protocol === 'https:' ? 'wss:' : 'ws:';
+            const port = window.location.port ? `:${window.location.port}` : (protocol === 'wss:' ? ':443' : ':80');
+            ws = new WebSocket(`${protocol}//${window.location.hostname}${port}`);
             
-            // 1. Обработка ушедших (удаление старых соединений)
-            for (const id of allUsers.keys()) {
-                if (!newUsersMap.has(id) && id !== peerId) {
-                    removePeer(id);
-                }
-            }
-            
-            // 2. Обработка новых (создание новых соединений)
-            for (const [id, user] of newUsersMap.entries()) {
-                if (id !== peerId && !peers.has(id)) {
-                    // Используем ID для детерминированного выбора инициатора
-                    const initiator = peerId < id; 
-                    if (localStream) {
-                        createPeer(id, user.nickname, initiator);
-                    }
-                }
-            }
-            
-            allUsers = newUsersMap;
-        }
+            ws.onopen = () => {
+                STATUS_DISPLAY.textContent = `[СИСТЕМА] ПОДКЛЮЧЕНО. ID: ${nickname}`;
+                // Отправляем серверу наш уникальный никнейм
+                ws.send(JSON.stringify({ type: 'join', nickname: nick }));
+            };
 
-        // [PEER_MANAGER] Создание нового P2P соединения (Голос/Видео)
-        function createPeer(targetId, targetNickname, initiator) {
-            if (peers.has(targetId)) return;
-
-            const newPeer = new SimplePeer({
-                initiator: initiator,
-                trickle: true, 
-                stream: localStream
-            });
-
-            peers.set(targetId, newPeer);
-
-            newPeer.on('signal', data => {
-                if (ws.readyState === WebSocket.OPEN) {
-                    ws.send(JSON.stringify({
-                        type: 'WEBRTC_SIGNAL',
-                        senderId: peerId,
-                        targetId: targetId,
-                        signal: data
-                    }));
-                }
-            });
-
-            newPeer.on('stream', stream => {
-                // Прием удаленного потока (Аудио и Видео)
-                addRemoteStream(targetId, targetNickname, stream);
-                displayMessage({ 
-                    type: 'SYSTEM', 
-                    message: `СВЯЗЬ УСТАНОВЛЕНА: ${targetNickname}. (ГОЛОС/ВИДЕО АКТИВНЫ)` 
-                });
-            });
-
-            newPeer.on('close', () => {
-                removePeer(targetId, true);
-                displayMessage({ 
-                    type: 'SYSTEM', 
-                    message: `СВЯЗЬ ПРЕРВАНА: ${targetNickname}` 
-                });
-            });
-
-            newPeer.on('error', (err) => {
-                console.error(`P2P Error with ${targetId}:`, err);
-                removePeer(targetId, true);
-            });
-        }
-        
-        // [PEER_MANAGER] Обработка входящего сигнала
-        function handleSignal(senderId, signal) {
-            if (senderId === peerId) return;
-
-            if (peers.has(senderId)) {
-                peers.get(senderId).signal(signal);
-                return;
-            }
-
-            if (signal.type === 'offer' || !signal.type) { 
-                const senderInfo = allUsers.get(senderId);
-                const senderNickname = senderInfo ? senderInfo.nickname : 'НЕИЗВЕСТНО';
+            ws.onmessage = async (event) => {
+                const data = JSON.parse(event.data);
                 
-                if (localStream) {
-                    // Создаем peer-ответчик
-                    createPeer(senderId, senderNickname, false); 
-                    peers.get(senderId).signal(signal);
+                switch (data.type) {
+                    case 'error':
+                        alert(`[ОШИБКА] ${data.message}`);
+                        // Если ошибка, разрываем соединение и позволяем выбрать другой ник
+                        ws.close();
+                        resetClient();
+                        break;
+
+                    case 'user_list':
+                        // Обновляем список пользователей
+                        updateUserList(data.users);
+                        // Инициируем P2P соединение для новых пользователей
+                        data.users.forEach(userNick => {
+                            if (userNick !== nickname && !peers[userNick]) {
+                                initiatePeer(userNick, true); // true = initiator
+                            }
+                        });
+                        break;
+                    
+                    case 'leave':
+                        // Пользователь покинул конференцию
+                        destroyPeer(data.nickname);
+                        appendMessage(`[СИСТЕМА] Участник "${data.nickname}" отключился.`, 'system-message');
+                        break;
+
+                    case 'signal':
+                        // Обработка сигналов SimplePeer (offer, answer, ice-candidates)
+                        if (peers[data.from]) {
+                            peers[data.from].signal(data.signal);
+                        } else if (data.signal.type === 'offer') {
+                            // Получен offer от нового пользователя
+                            initiatePeer(data.from, false); // false = not initiator
+                            peers[data.from].signal(data.signal);
+                        }
+                        break;
                 }
+            };
+
+            ws.onclose = () => {
+                STATUS_DISPLAY.textContent = `[СИСТЕМА] ОФФЛАЙН`;
+                appendMessage(`[СИСТЕМА] Соединение с сервером потеряно.`, 'system-message');
+                resetClient(true);
+            };
+
+            ws.onerror = (err) => {
+                console.error('WS Error:', err);
+                STATUS_DISPLAY.textContent = `[СИСТЕМА] ОШИБКА СОЕДИНЕНИЯ`;
+                resetClient(true);
+            };
+        }
+
+        function resetClient(isError = false) {
+            // Очистка всех peer-соединений
+            Object.values(peers).forEach(p => p.destroy());
+            peers = {};
+            
+            // Сброс UI
+            document.getElementById('nickname_input').disabled = false;
+            document.getElementById('nickname_input').value = isError ? nickname : '';
+            document.getElementById('nick_button').disabled = false;
+            USER_LIST_BOX.innerHTML = '';
+            VIDEO_GRID.innerHTML = '';
+            nickname = null;
+            
+            // Отключаем кнопки чата
+            MESSAGE_INPUT.disabled = true;
+            SEND_BUTTON.disabled = true;
+            RECORD_TOGGLE.disabled = true;
+            
+            // Скрываем/обновляем контролы
+            CONTROLS_BLOCK_HEADER.style.display = 'none';
+            CALL_STATUS_DISPLAY.textContent = 'Медиа: НЕАКТИВНО';
+
+            // Останавливаем медиа, если активно
+            if (stream) {
+                stream.getTracks().forEach(track => track.stop());
+                stream = null;
             }
         }
 
-        // [PEER_MANAGER] Удаление P2P соединения и DOM-элемента
-        function removePeer(targetId, destroy = false) {
-            const remoteWrapper = document.getElementById(`video-${targetId}`);
-            if (remoteWrapper) {
-                remoteWrapper.remove();
-            }
-            if (peers.has(targetId)) {
-                if (destroy) peers.get(targetId).destroy();
-                peers.delete(targetId);
+        function initiatePeer(targetNick, initiator) {
+            const peer = new SimplePeer({
+                initiator: initiator,
+                stream: stream, // Отправляем наш медиапоток
+                trickle: false // Используем полные SDP
+            });
+
+            peers[targetNick] = peer;
+
+            peer.on('signal', data => {
+                // Отправляем сигнальные данные через сервер
+                ws.send(JSON.stringify({
+                    type: 'signal',
+                    to: targetNick,
+                    signal: data
+                }));
+            });
+
+            peer.on('connect', () => {
+                console.log(`[P2P] Соединение установлено с: ${targetNick}`);
+                appendMessage(`[СИСТЕМА P2P] Установлен прямой канал с "${targetNick}".`, 'system-message');
+            });
+            
+            peer.on('stream', remoteStream => {
+                // Получен удаленный медиапоток
+                addRemoteVideo(targetNick, remoteStream);
+            });
+
+            peer.on('data', data => {
+                // Получены данные (сообщения или голосовые SMS)
+                try {
+                    const message = JSON.parse(data.toString());
+                    if (message.type === 'chat') {
+                        appendMessage(`[${targetNick}] ${message.text}`, 'received-message', targetNick);
+                    } else if (message.type === 'voice_meta') {
+                         // Ожидаем бинарные данные
+                         appendMessage(`[${targetNick}] Отправляет голосовое сообщение...`, 'system-message');
+                    }
+                } catch (e) {
+                    // Это может быть бинарный Blob (голосовое сообщение)
+                    handleReceivedAudio(data, targetNick);
+                }
+            });
+
+            peer.on('close', () => {
+                destroyPeer(targetNick);
+            });
+
+            peer.on('error', err => {
+                console.error(`[P2P Error] с ${targetNick}:`, err);
+                destroyPeer(targetNick);
+            });
+        }
+
+        function destroyPeer(targetNick) {
+            if (peers[targetNick]) {
+                peers[targetNick].destroy();
+                delete peers[targetNick];
+                removeRemoteVideo(targetNick);
             }
         }
-        
-        // [DOM_MANIPULATION] Добавление удаленного стрима в DOM
-        function addRemoteStream(id, nickname, stream) {
-            let wrapper = document.getElementById(`video-${id}`);
-            if (!wrapper) {
-                wrapper = createVideoWrapper(id, nickname);
-                videoGrid.appendChild(wrapper);
+
+        // --- 3. УПРАВЛЕНИЕ МЕДИА И ВИДЕО ---
+
+        async function startMedia() {
+            if (stream) return;
+            
+            try {
+                // Запрашиваем доступ к камере и микрофону
+                stream = await navigator.mediaDevices.getUserMedia({ video: true, audio: true });
+                
+                // Добавляем свое видео
+                addLocalVideo(stream);
+                
+                // Включаем контролы
+                CONTROLS_BLOCK_HEADER.style.display = 'flex';
+                CALL_STATUS_DISPLAY.textContent = 'Медиа: АКТИВНО';
+                
+                // Включаем кнопки чата
+                MESSAGE_INPUT.disabled = false;
+                SEND_BUTTON.disabled = false;
+                RECORD_TOGGLE.disabled = false;
+                
+                // Обновляем все существующие peer-соединения новым потоком
+                Object.values(peers).forEach(peer => {
+                    peer.addStream(stream);
+                });
+                
+            } catch (err) {
+                console.error("Ошибка доступа к медиа:", err);
+                CALL_STATUS_DISPLAY.textContent = 'Медиа: ОТКАЗ';
+                appendMessage(`[СИСТЕМА] ОШИБКА: Отказано в доступе к медиа (микрофон/камера).`, 'system-message');
             }
-            wrapper.querySelector('video').srcObject = stream;
         }
-        
-        // [DOM_MANIPULATION] Создание обертки для видео
-        function createVideoWrapper(id, label) {
-            const wrapper = document.createElement('div');
-            wrapper.className = 'video-wrapper';
-            wrapper.id = `video-${id}`;
+
+        function addLocalVideo(localStream) {
+            // Проверяем, существует ли уже локальное видео
+            if (document.getElementById('video_local')) return;
+
+            const videoWrapper = document.createElement('div');
+            videoWrapper.className = 'video-wrapper';
+            videoWrapper.id = 'wrapper_local';
             
             const video = document.createElement('video');
+            video.srcObject = localStream;
             video.autoplay = true;
+            video.muted = true; // Свое видео всегда mute
+            video.id = 'video_local';
             
-            const labelEl = document.createElement('div');
-            labelEl.className = 'video-label';
-            labelEl.textContent = `[ПИР] ${label}`;
+            const label = document.createElement('div');
+            label.className = 'video-label';
+            label.textContent = `${nickname} (Вы)`;
             
-            wrapper.appendChild(video);
-            wrapper.appendChild(labelEl);
-            return wrapper;
+            videoWrapper.appendChild(video);
+            videoWrapper.appendChild(label);
+            VIDEO_GRID.prepend(videoWrapper); // Свое видео ставим первым
+            
+            video.onloadedmetadata = () => video.play();
         }
 
-        // [CHAT] Отправка сообщения
+        function addRemoteVideo(peerNick, remoteStream) {
+            const videoWrapper = document.createElement('div');
+            videoWrapper.className = 'video-wrapper';
+            videoWrapper.id = `wrapper_${peerNick}`;
+            
+            const video = document.createElement('video');
+            video.srcObject = remoteStream;
+            video.autoplay = true;
+            video.id = `video_${peerNick}`;
+            
+            const label = document.createElement('div');
+            label.className = 'video-label';
+            label.textContent = peerNick;
+            
+            videoWrapper.appendChild(video);
+            videoWrapper.appendChild(label);
+            VIDEO_GRID.appendChild(videoWrapper);
+            
+            video.onloadedmetadata = () => video.play();
+        }
+
+        function removeRemoteVideo(peerNick) {
+            const wrapper = document.getElementById(`wrapper_${peerNick}`);
+            if (wrapper) {
+                wrapper.remove();
+            }
+        }
+        
+        // --- 4. УПРАВЛЕНИЕ ЧАТОМ И ГОЛОСОВЫМИ SMS ---
+
+        function appendMessage(text, className, sender = 'Вы') {
+            const messageContainer = document.createElement('div');
+            messageContainer.className = className;
+            
+            const bubble = document.createElement('div');
+            bubble.className = 'message-bubble';
+
+            if (className.includes('system')) {
+                bubble.textContent = text;
+            } else {
+                // Обычное сообщение
+                const nameTag = document.createElement('strong');
+                nameTag.textContent = sender;
+                
+                const textNode = document.createTextNode(text.replace(`[${sender}] `, ''));
+
+                bubble.appendChild(nameTag);
+                bubble.appendChild(textNode);
+            }
+            
+            messageContainer.appendChild(bubble);
+            CHAT_BOX.prepend(messageContainer); // Добавляем в начало для column-reverse
+            
+            // Если чат не на мобилке, можем скрыть сайдбар
+            if (window.innerWidth <= 768 && className.includes('received')) {
+                toggleSidebar(false);
+            }
+        }
+
         function sendMessage() {
-            const message = messageInput.value.trim();
+            const input = document.getElementById('message_input');
+            const message = input.value.trim();
+            
+            if (message === '') return;
+
+            // 1. Отправляем свое сообщение в чат
+            appendMessage(message, 'sent-message', 'Вы');
+            input.value = '';
+
+            // 2. Отправляем P2P всем подключенным
+            const data = JSON.stringify({ type: 'chat', text: message });
+            Object.values(peers).forEach(peer => {
+                if (peer.connected) {
+                    peer.send(data);
+                }
+            });
+        }
+        
+        // --- 5. ФУНКЦИИ ДЛЯ ГОЛОСОВЫХ СООБЩЕНИЙ (VOICE SMS) ---
+        
+        async function toggleRecording() {
+            const icon = document.getElementById('record_icon');
+
+            if (!mediaRecorder || mediaRecorder.state === "inactive") {
+                // НАЧАЛО ЗАПИСИ
+                if (!stream || !stream.getAudioTracks().length) {
+                    // Если потока нет, пытаемся получить только аудио
+                    try {
+                        stream = await navigator.mediaDevices.getUserMedia({ audio: true, video: false });
+                        addLocalVideo(stream); // добавляем заглушку, если видео нет
+                        // Обновляем все существующие peer-соединения новым потоком
+                        Object.values(peers).forEach(peer => {
+                             peer.addStream(stream);
+                        });
+                    } catch (e) {
+                        alert("Не удалось получить доступ к микрофону.");
+                        return;
+                    }
+                }
+                
+                mediaRecorder = new MediaRecorder(stream);
+                audioChunks = [];
+
+                mediaRecorder.ondataavailable = event => {
+                    audioChunks.push(event.data);
+                };
+
+                mediaRecorder.onstop = sendVoiceMessage;
+
+                mediaRecorder.start();
+                RECORD_TOGGLE.classList.add('recording');
+                icon.textContent = 'stop';
+                MESSAGE_INPUT.placeholder = 'Запись... Нажмите, чтобы остановить.';
+                MESSAGE_INPUT.disabled = true;
+                SEND_BUTTON.disabled = true;
+
+            } else if (mediaRecorder.state === "recording") {
+                // КОНЕЦ ЗАПИСИ
+                mediaRecorder.stop();
+                RECORD_TOGGLE.classList.remove('recording');
+                icon.textContent = 'mic_none';
+                MESSAGE_INPUT.placeholder = 'Сообщение (SMS) / Enter для отправки';
+                MESSAGE_INPUT.disabled = false;
+                SEND_BUTTON.disabled = false;
+            }
+        }
+        
+        function sendVoiceMessage() {
+            const audioBlob = new Blob(audioChunks, { 'type' : 'audio/ogg; codecs=opus' });
+            
+            // 1. Отправляем свое сообщение в чат
+            appendVoiceMessage(audioBlob, 'sent-message', 'Вы');
+
+            // 2. Отправляем P2P всем подключенным (сначала метаданные, затем бинарный блоб)
+            const metaData = JSON.stringify({ type: 'voice_meta', size: audioBlob.size, mime: audioBlob.type });
+            
+            const reader = new FileReader();
+            reader.onload = () => {
+                const buffer = reader.result;
+                Object.values(peers).forEach(peer => {
+                    if (peer.connected) {
+                        peer.send(metaData);
+                        peer.send(buffer); // Отправляем как ArrayBuffer
+                    }
+                });
+            };
+            reader.readAsArrayBuffer(audioBlob);
+        }
+
+        function handleReceivedAudio(arrayBuffer, sender) {
+            const blob = new Blob([arrayBuffer], { type: 'audio/ogg' });
+            appendVoiceMessage(blob, 'received-message', sender);
+            
+            // Удаляем системное сообщение "Отправляет голосовое сообщение..."
+            const systemMessages = CHAT_BOX.querySelectorAll('.system-message');
+            if(systemMessages.length > 0) {
+                 // Находим и удаляем самое свежее, которое может быть нашим
+                 for(let i = 0; i < systemMessages.length; i++) {
+                     if(systemMessages[i].textContent.includes(`[${sender}] Отправляет голосовое сообщение...`)) {
+                         systemMessages[i].remove();
+                         break;
+                     }
+                 }
+            }
+        }
+        
+        function appendVoiceMessage(audioBlob, className, sender) {
+             const audioUrl = URL.createObjectURL(audioBlob);
+             
+             const messageContainer = document.createElement('div');
+             messageContainer.className = className;
+             
+             const bubble = document.createElement('div');
+             bubble.className = 'message-bubble';
+             
+             const nameTag = document.createElement('strong');
+             nameTag.textContent = sender;
+             
+             const voiceContainer = document.createElement('div');
+             voiceContainer.className = 'voice-message-container';
+             
+             const icon = document.createElement('i');
+             icon.className = 'material-icons voice-icon';
+             icon.textContent = 'volume_up';
+             
+             const audio = document.createElement('audio');
+             audio.controls = true;
+             audio.src = audioUrl;
+
+             bubble.appendChild(nameTag);
+             voiceContainer.appendChild(icon);
+             voiceContainer.appendChild(audio);
+             bubble.appendChild(voiceContainer);
+             messageContainer.appendChild(bubble);
+             
+             CHAT_BOX.prepend(messageContainer);
+        }
+
+        // --- 6. ДОПОЛНИТЕЛЬНЫЕ ФУНКЦИИ UI / УПРАВЛЕНИЕ МЕДИА ---
+
+        function updateUserList(users) {
+            USER_LIST_BOX.innerHTML = '';
+            document.getElementById('user_count').textContent = `(${users.length + 1})`; // +1 для себя
+            
+            // Добавляем себя
+            const selfItem = document.createElement('li');
+            selfItem.className = 'user-item';
+            selfItem.innerHTML = `<span class="status-icon" style="background-color: var(--primary-color);"></span> <span>${nickname} (Вы)</span>`;
+            USER_LIST_BOX.appendChild(selfItem);
+
+            // Добавляем других пользователей
+            users.filter(u => u !== nickname).forEach(userNick => {
+                const item = document.createElement('li');
+                item.className = 'user-item';
+                item.innerHTML = `<span class="status-icon"></span> <span>${userNick}</span>`;
+                USER_LIST_BOX.appendChild(item);
+            });
+
+            // Инициируем медиа, если список не пуст (для P2P)
+            if (users.length > 0 && !stream) {
+                startMedia();
+            } else if (users.length === 0) {
+                // Если никого нет, останавливаем медиа, чтобы не тратить ресурсы
+                hangUp(); 
+            }
+        }
+        
+        function toggleSidebar(force) {
+            const panel = document.getElementById('left_panel');
+            const overlay = document.getElementById('overlay');
+            
+            const isActive = panel.classList.contains('active');
+
+            if (force === true || (!isActive && force === undefined)) {
+                panel.classList.add('active');
+                overlay.classList.add('active');
+            } else if (force === false || (isActive && force === undefined)) {
+                panel.classList.remove('active');
+                overlay.classList.remove('active');
+            }
+        }
+
+        function toggleAudio() {
+            const audioTrack = stream ? stream.getAudioTracks()[0] : null;
+            const button = document.getElementById('audioToggle');
+            const icon = button.querySelector('.material-icons');
+
+            if (audioTrack) {
+                audioTrack.enabled = !audioTrack.enabled;
+                if (audioTrack.enabled) {
+                    icon.textContent = 'mic';
+                    button.style.backgroundColor = 'var(--input-bg)';
+                } else {
+                    icon.textContent = 'mic_off';
+                    button.style.backgroundColor = 'var(--danger-color)';
+                }
+            }
+        }
+
+        function toggleVideo() {
+            const videoTrack = stream ? stream.getVideoTracks()[0] : null;
+            const button = document.getElementById('videoToggle');
+            const icon = button.querySelector('.material-icons');
+
+            if (videoTrack) {
+                videoTrack.enabled = !videoTrack.enabled;
+                if (videoTrack.enabled) {
+                    icon.textContent = 'videocam';
+                    button.style.backgroundColor = 'var(--input-bg)';
+                } else {
+                    icon.textContent = 'videocam_off';
+                    button.style.backgroundColor = 'var(--danger-color)';
+                }
+            }
+        }
+
+        function hangUp() {
+             if (stream) {
+                stream.getTracks().forEach(track => track.stop());
+                stream = null;
+            }
+            // Удаляем свое видео
+            const localWrapper = document.getElementById('wrapper_local');
+            if (localWrapper) localWrapper.remove();
+            
+            // Отключаем кнопки
+            document.getElementById('audioToggle').style.backgroundColor = 'var(--input-bg)';
+            document.getElementById('videoToggle').style.backgroundColor = 'var(--input-bg)';
+            document.getElementById('audioToggle').querySelector('.material-icons').textContent = 'mic_none';
+            document.getElementById('videoToggle').querySelector('.material-icons').textContent = 'videocam_off';
+
+            CALL_STATUS_DISPLAY.textContent = 'Медиа: НЕАКТИВНО';
+        }
+
+        // Автозапуск медиа при наличии потока (например, если кто-то присоединился)
+        document.addEventListener('DOMContentLoaded', () => {
+            document.getElementById('nickname_input').focus();
+        });
+    </script>
+</body>
+</html>
