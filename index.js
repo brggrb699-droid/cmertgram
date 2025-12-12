@@ -6,7 +6,7 @@ const path = require('path');
 const app = express();
 const server = http.createServer(app);
 
-// Настройка Socket.IO для работы на Render
+// Настройка Socket.IO 
 const io = new Server(server, {
     cors: {
         origin: "*", 
@@ -39,13 +39,7 @@ function broadcastUserList() {
 
 /** Отправка системного сообщения всем */
 function sendSystemMessage(content) {
-    const message = {
-        type: 'system',
-        sender: 'Система',
-        content: content,
-        timestamp: new Date().toLocaleTimeString('ru-RU', { hour: '2-digit', minute: '2-digit' })
-    };
-    io.emit('public_message', message);
+    io.emit('system_message', content);
 }
 
 // --- Обработка соединений Socket.IO ---
@@ -71,59 +65,44 @@ io.on('connection', (socket) => {
         nicknames[cleanNickname] = socket.id;
         
         socket.emit('registration_success', cleanNickname);
-        sendSystemMessage(`Пользователь **${cleanNickname}** присоединился к чату.`);
+        sendSystemMessage(`Пользователь **${cleanNickname}** присоединился.`);
         broadcastUserList();
         console.log(`Пользователь зарегистрирован: ${cleanNickname}`);
     });
 
     // 2. Общее сообщение 
-    socket.on('public_message', (encryptedContent) => {
+    socket.on('public_message', (msg) => {
         const sender = users[socket.id];
         if (!sender) return; 
 
-        const message = {
-            type: 'public',
-            sender: sender,
-            content: encryptedContent, 
-            timestamp: new Date().toLocaleTimeString('ru-RU', { hour: '2-digit', minute: '2-digit' })
-        };
-        
-        io.emit('public_message', message);
+        // Добавляем отправителя и рассылаем всем
+        msg.sender = sender;
+        io.emit('public_message', msg);
     });
 
-    // 3. Приватное сообщение
-    socket.on('private_message', (data) => {
+    // 3. Личное сообщение
+    socket.on('private_message', (msg) => {
         const sender = users[socket.id];
-        const recipientSocketId = nicknames[data.recipientNickname];
+        const recipientSocketId = nicknames[msg.recipient];
 
         if (!sender) return;
 
-        const message = {
-            type: 'private',
-            sender: sender,
-            recipient: data.recipientNickname,
-            content: data.encryptedContent,
-            timestamp: new Date().toLocaleTimeString('ru-RU', { hour: '2-digit', minute: '2-digit' })
-        };
+        // Добавляем отправителя
+        msg.sender = sender;
         
         // Отправка получателю (если он в сети)
         if (recipientSocketId) {
-            io.to(recipientSocketId).emit('private_message', message);
+            io.to(recipientSocketId).emit('private_message', msg);
+            
+            // Отправка обратно отправителю (для отображения своего сообщения)
+            io.to(socket.id).emit('private_message', msg);
         } else {
-             // Можно отправить системное сообщение отправителю, что пользователь оффлайн
-             const offlineMsg = {
-                type: 'system',
-                sender: 'Система',
-                content: `Пользователь **${data.recipientNickname}** не в сети. Сообщение не доставлено.`,
-                timestamp: new Date().toLocaleTimeString('ru-RU', { hour: '2-digit', minute: '2-digit' })
-             };
-             io.to(socket.id).emit('public_message', offlineMsg);
+             // Сообщение отправителю, что пользователь оффлайн
+             const offlineMsg = `Пользователь **${msg.recipient}** не в сети. Сообщение не доставлено.`;
+             io.to(socket.id).emit('system_message', offlineMsg);
         }
-        
-        // Отправка обратно отправителю (для отображения своего сообщения)
-        io.to(socket.id).emit('private_message', message);
     });
-
+    
     // 4. Отключение
     socket.on('disconnect', () => {
         const disconnectedUser = users[socket.id];
