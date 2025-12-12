@@ -66,6 +66,40 @@
             border-bottom: 1px solid rgba(255, 255, 255, 0.05);
         }
 
+        /* КОНФИГУРАЦИЯ (ID + ЦЕЛЕВОЙ ID) */
+        .config-section h4 {
+            color: var(--secondary-text);
+            font-size: 0.85em;
+            margin: 0 0 5px 0;
+            display: flex;
+            align-items: center;
+        }
+        .config-section {
+            padding: 15px;
+        }
+
+        .input-group {
+            display: flex;
+            align-items: center;
+            gap: 5px;
+        }
+        .input-group input[type="text"] {
+            margin: 0; 
+            border-radius: 20px 0 0 20px;
+            flex-grow: 1;
+        }
+        .input-group button {
+            border-radius: 0 20px 20px 0;
+            padding: 10px 15px;
+            height: 40px;
+            width: auto;
+            min-width: 40px;
+            background-color: var(--primary-color);
+        }
+        .input-group button i {
+            font-size: 18px; 
+        }
+        
         #user_list_box {
             overflow-y: auto;
             flex-grow: 1;
@@ -78,6 +112,15 @@
             align-items: center;
             padding: 10px 15px;
             border-bottom: 1px solid rgba(255, 255, 255, 0.03);
+            cursor: pointer; /* Для кликабельности целевого звонка */
+            transition: background-color 0.1s;
+        }
+        .user-item:hover:not(.local-user) {
+            background-color: rgba(0, 0, 0, 0.2);
+        }
+        .user-item.local-user {
+            background-color: rgba(0, 136, 204, 0.1); /* Легкий синий фон для себя */
+            font-weight: 600;
             cursor: default;
         }
         .user-item .status-icon {
@@ -86,13 +129,6 @@
             border-radius: 50%;
             margin-right: 10px;
             background-color: var(--accent-color); /* Yellow for connected */
-        }
-        
-        #nick_form {
-            padding: 20px;
-            background-color: var(--header-bg);
-            text-align: center;
-            border-bottom: 1px solid rgba(255, 255, 255, 0.05);
         }
         
         /* --- RIGHT PANEL: VIDEO / CHAT --- */
@@ -216,7 +252,7 @@
         .voice-message-container audio {
             flex-grow: 1;
             height: 30px;
-            filter: invert(100%) sepia(0%) saturate(7484%) hue-rotate(205deg) brightness(100%) contrast(100%); /* Make audio controls visible in dark theme */
+            filter: invert(100%) sepia(0%) saturate(7484%) hue-rotate(205deg) brightness(100%) contrast(100%); 
         }
         .voice-icon {
             margin-right: 5px;
@@ -361,7 +397,7 @@
                 padding: 8px 12px;
             }
             #sidebar_toggle {
-                display: flex; /* Show the toggle button on mobile */
+                display: flex; 
             }
             /* Overlay for mobile when sidebar is open */
             .overlay {
@@ -397,18 +433,32 @@
                 [СИСТЕМА] ОФФЛАЙН
             </div>
 
-            <div id="nick_form">
-                <input type="text" id="nickname_input" placeholder="Введите Ваш УНИКАЛЬНЫЙ ID (Ник)" required>
-                <button onclick="saveNickname()" id="nick_button" style="width: 100%; margin-top: 10px;">
-                    <i class="material-icons">login</i> АКТИВИРОВАТЬ
-                </button>
+            <div id="connection_config">
+                <div class="config-section">
+                    <h4><i class="material-icons" style="font-size: 1.1em; vertical-align: bottom;">fingerprint</i> Ваш УНИКАЛЬНЫЙ ID:</h4>
+                    <div class="input-group">
+                        <input type="text" id="nickname_input" placeholder="Введите Ваш ID" required>
+                        <button onclick="saveNickname()" id="nick_button" title="Активировать ID">
+                            <i class="material-icons">vpn_key</i>
+                        </button>
+                    </div>
+                </div>
+                
+                <div class="config-section" id="target_id_section" style="border-top: 1px solid rgba(255, 255, 255, 0.05); padding-top: 10px;">
+                    <h4><i class="material-icons" style="font-size: 1.1em; vertical-align: bottom;">person_search</i> Целевой ID (P2P-Контакт):</h4>
+                    <div class="input-group">
+                        <input type="text" id="target_nickname_input" placeholder="Ник получателя" disabled>
+                        <button onclick="connectToTarget()" id="connect_target_button" title="Начать P2P-сессию" disabled>
+                            <i class="material-icons">connect_without_contact</i>
+                        </button>
+                    </div>
+                </div>
             </div>
-            
             <div class="panel-header" style="cursor: pointer;" onclick="toggleSidebar()">
-                Участники P2P <span id="user_count" style="color: var(--accent-color); margin-left: 5px;">(0)</span>
+                Активные Участники P2P <span id="user_count" style="color: var(--accent-color); margin-left: 5px;">(0)</span>
             </div>
             <ul id="user_list_box">
-                </ul>
+            </ul>
         </div>
 
         <div class="right-panel">
@@ -434,7 +484,7 @@
             </div>
 
             <div class="video-grid" id="video_grid">
-                </div>
+            </div>
             
             <div class="chat-box" id="chat_box">
                 <div class="system-message">
@@ -472,8 +522,10 @@
         const RECORD_TOGGLE = document.getElementById('recordToggle');
         const MESSAGE_INPUT = document.getElementById('message_input');
         const SEND_BUTTON = document.getElementById('send_button');
+        const TARGET_NICKNAME_INPUT = document.getElementById('target_nickname_input');
+        const CONNECT_TARGET_BUTTON = document.getElementById('connect_target_button');
 
-        // --- 1. УПРАВЛЕНИЕ НИКНЕЙМОМ (УНИКАЛЬНЫЙ ID) ---
+        // --- 1. УПРАВЛЕНИЕ НИКНЕЙМОМ И ЦЕЛЕВЫМ P2P ---
 
         function saveNickname() {
             const input = document.getElementById('nickname_input');
@@ -486,12 +538,40 @@
             initializeWebSocket(nickname);
             input.disabled = true;
             document.getElementById('nick_button').disabled = true;
+            
+            // Активируем поле для целевого P2P
+            TARGET_NICKNAME_INPUT.disabled = false;
+            CONNECT_TARGET_BUTTON.disabled = false;
+            
+            // Начинаем запрашивать медиа сразу после активации ID
+            startMedia(); 
+        }
+
+        function connectToTarget() {
+            const targetNick = TARGET_NICKNAME_INPUT.value.trim();
+            
+            if (!targetNick || targetNick === nickname) {
+                alert('Введите корректный целевой ID, который отличается от Вашего.');
+                return;
+            }
+            if (peers[targetNick] && peers[targetNick].connected) {
+                appendMessage(`[СИСТЕМА P2P] Соединение с "${targetNick}" уже активно.`, 'system-message');
+                return;
+            }
+            
+            // Инициируем P2P соединение с целевым ником (initiator = true)
+            if (Object.keys(peers).includes(targetNick)) {
+                destroyPeer(targetNick); // Перезапуск, если peer существует, но не подключен
+            }
+            
+            initiatePeer(targetNick, true);
+            appendMessage(`[СИСТЕМА] Попытка установить P2P-канал с "${targetNick}"...`, 'system-message');
         }
 
         // --- 2. WEBSOCKET И СИГНАЛИНГ СЕРВЕРА ---
 
         function initializeWebSocket(nick) {
-            // Подключение к WebSocket на том же хосте и порту (предполагаем, что сервер запущен на 8080)
+            // Подключение к WebSocket на том же хосте и порту
             const protocol = window.location.protocol === 'https:' ? 'wss:' : 'ws:';
             const port = window.location.port ? `:${window.location.port}` : (protocol === 'wss:' ? ':443' : ':80');
             ws = new WebSocket(`${protocol}//${window.location.hostname}${port}`);
@@ -508,7 +588,6 @@
                 switch (data.type) {
                     case 'error':
                         alert(`[ОШИБКА] ${data.message}`);
-                        // Если ошибка, разрываем соединение и позволяем выбрать другой ник
                         ws.close();
                         resetClient();
                         break;
@@ -516,22 +595,23 @@
                     case 'user_list':
                         // Обновляем список пользователей
                         updateUserList(data.users);
-                        // Инициируем P2P соединение для новых пользователей
+                        
+                        // В Mesh-сети клиент инициирует соединение со всеми новыми пользователями
                         data.users.forEach(userNick => {
-                            if (userNick !== nickname && !peers[userNick]) {
-                                initiatePeer(userNick, true); // true = initiator
-                            }
+                             if (userNick !== nickname && !peers[userNick]) {
+                                 // Автоматическое установление Mesh-соединения
+                                 initiatePeer(userNick, true); 
+                             }
                         });
                         break;
                     
                     case 'leave':
-                        // Пользователь покинул конференцию
                         destroyPeer(data.nickname);
                         appendMessage(`[СИСТЕМА] Участник "${data.nickname}" отключился.`, 'system-message');
+                        updateUserList(Object.keys(peers)); // Обновляем список после ухода
                         break;
 
                     case 'signal':
-                        // Обработка сигналов SimplePeer (offer, answer, ice-candidates)
                         if (peers[data.from]) {
                             peers[data.from].signal(data.signal);
                         } else if (data.signal.type === 'offer') {
@@ -557,45 +637,75 @@
         }
 
         function resetClient(isError = false) {
-            // Очистка всех peer-соединений
             Object.values(peers).forEach(p => p.destroy());
             peers = {};
             
-            // Сброс UI
             document.getElementById('nickname_input').disabled = false;
             document.getElementById('nickname_input').value = isError ? nickname : '';
             document.getElementById('nick_button').disabled = false;
+            TARGET_NICKNAME_INPUT.disabled = true;
+            CONNECT_TARGET_BUTTON.disabled = true;
             USER_LIST_BOX.innerHTML = '';
             VIDEO_GRID.innerHTML = '';
             nickname = null;
             
-            // Отключаем кнопки чата
             MESSAGE_INPUT.disabled = true;
             SEND_BUTTON.disabled = true;
             RECORD_TOGGLE.disabled = true;
             
-            // Скрываем/обновляем контролы
             CONTROLS_BLOCK_HEADER.style.display = 'none';
             CALL_STATUS_DISPLAY.textContent = 'Медиа: НЕАКТИВНО';
 
-            // Останавливаем медиа, если активно
             if (stream) {
                 stream.getTracks().forEach(track => track.stop());
                 stream = null;
             }
         }
+        
+        // Отдельная функция для обновления списка участников
+        function updateUserList(users) {
+            USER_LIST_BOX.innerHTML = '';
+            // Объединяем пользователей от сервера и тех, с кем есть активный peer
+            const allUsers = Array.from(new Set([...users, ...Object.keys(peers)]));
+            
+            allUsers.sort();
+            
+            allUsers.forEach(userNick => {
+                const li = document.createElement('li');
+                li.className = 'user-item';
+                
+                if (userNick === nickname) {
+                    li.classList.add('local-user');
+                    li.innerHTML = `<span class="status-icon" style="background-color: var(--primary-color);"></span> ${userNick} (Вы)`;
+                } else {
+                    const isConnected = peers[userNick] && peers[userNick].connected;
+                    const connectionStatusColor = isConnected ? 'var(--success-color)' : 'var(--accent-color)';
+                    li.innerHTML = `<span class="status-icon" style="background-color: ${connectionStatusColor};"></span> ${userNick}`;
+                    
+                    // Клик на участнике для быстрого звонка/чата
+                    li.onclick = () => {
+                        TARGET_NICKNAME_INPUT.value = userNick;
+                        connectToTarget();
+                    };
+                }
+                
+                USER_LIST_BOX.appendChild(li);
+            });
+            
+            document.getElementById('user_count').textContent = `(${allUsers.length})`;
+        }
+
 
         function initiatePeer(targetNick, initiator) {
             const peer = new SimplePeer({
                 initiator: initiator,
                 stream: stream, // Отправляем наш медиапоток
-                trickle: false // Используем полные SDP
+                trickle: false 
             });
 
             peers[targetNick] = peer;
 
             peer.on('signal', data => {
-                // Отправляем сигнальные данные через сервер
                 ws.send(JSON.stringify({
                     type: 'signal',
                     to: targetNick,
@@ -606,36 +716,35 @@
             peer.on('connect', () => {
                 console.log(`[P2P] Соединение установлено с: ${targetNick}`);
                 appendMessage(`[СИСТЕМА P2P] Установлен прямой канал с "${targetNick}".`, 'system-message');
+                updateUserList(Object.keys(peers)); // Обновляем цвет статуса
             });
             
             peer.on('stream', remoteStream => {
-                // Получен удаленный медиапоток
                 addRemoteVideo(targetNick, remoteStream);
             });
 
             peer.on('data', data => {
-                // Получены данные (сообщения или голосовые SMS)
                 try {
                     const message = JSON.parse(data.toString());
                     if (message.type === 'chat') {
-                        appendMessage(`[${targetNick}] ${message.text}`, 'received-message', targetNick);
+                        appendMessage(message.text, 'received-message', targetNick);
                     } else if (message.type === 'voice_meta') {
-                         // Ожидаем бинарные данные
-                         appendMessage(`[${targetNick}] Отправляет голосовое сообщение...`, 'system-message');
+                           appendMessage(`[${targetNick}] Отправляет голосовое сообщение...`, 'system-message');
                     }
                 } catch (e) {
-                    // Это может быть бинарный Blob (голосовое сообщение)
                     handleReceivedAudio(data, targetNick);
                 }
             });
 
             peer.on('close', () => {
                 destroyPeer(targetNick);
+                updateUserList(Object.keys(peers)); 
             });
 
             peer.on('error', err => {
                 console.error(`[P2P Error] с ${targetNick}:`, err);
                 destroyPeer(targetNick);
+                updateUserList(Object.keys(peers));
             });
         }
 
@@ -646,6 +755,16 @@
                 removeRemoteVideo(targetNick);
             }
         }
+        
+        function hangUp() {
+            Object.keys(peers).forEach(nick => destroyPeer(nick));
+            // Если соединение с сервером активно, просто разрываем P2P, но не WS
+            if (ws && ws.readyState === WebSocket.OPEN) {
+                 appendMessage(`[СИСТЕМА] Все P2P-каналы разорваны.`, 'system-message');
+            } else {
+                 resetClient(); // Если нет WS, делаем полный сброс
+            }
+        }
 
         // --- 3. УПРАВЛЕНИЕ МЕДИА И ВИДЕО ---
 
@@ -653,22 +772,18 @@
             if (stream) return;
             
             try {
-                // Запрашиваем доступ к камере и микрофону
                 stream = await navigator.mediaDevices.getUserMedia({ video: true, audio: true });
                 
-                // Добавляем свое видео
                 addLocalVideo(stream);
                 
-                // Включаем контролы
                 CONTROLS_BLOCK_HEADER.style.display = 'flex';
                 CALL_STATUS_DISPLAY.textContent = 'Медиа: АКТИВНО';
                 
-                // Включаем кнопки чата
                 MESSAGE_INPUT.disabled = false;
                 SEND_BUTTON.disabled = false;
                 RECORD_TOGGLE.disabled = false;
                 
-                // Обновляем все существующие peer-соединения новым потоком
+                // Добавляем поток ко всем существующим peer-соединениям
                 Object.values(peers).forEach(peer => {
                     peer.addStream(stream);
                 });
@@ -680,8 +795,27 @@
             }
         }
 
+        function toggleAudio() {
+            const audioTrack = stream.getAudioTracks()[0];
+            const button = document.getElementById('audioToggle');
+            if (audioTrack) {
+                audioTrack.enabled = !audioTrack.enabled;
+                button.innerHTML = audioTrack.enabled ? '<i class="material-icons">mic</i>' : '<i class="material-icons">mic_off</i>';
+                button.style.backgroundColor = audioTrack.enabled ? 'var(--input-bg)' : 'var(--danger-color)';
+            }
+        }
+        
+        function toggleVideo() {
+            const videoTrack = stream.getVideoTracks()[0];
+            const button = document.getElementById('videoToggle');
+            if (videoTrack) {
+                videoTrack.enabled = !videoTrack.enabled;
+                button.innerHTML = videoTrack.enabled ? '<i class="material-icons">videocam</i>' : '<i class="material-icons">videocam_off</i>';
+                button.style.backgroundColor = videoTrack.enabled ? 'var(--input-bg)' : 'var(--danger-color)';
+            }
+        }
+
         function addLocalVideo(localStream) {
-            // Проверяем, существует ли уже локальное видео
             if (document.getElementById('video_local')) return;
 
             const videoWrapper = document.createElement('div');
@@ -691,7 +825,7 @@
             const video = document.createElement('video');
             video.srcObject = localStream;
             video.autoplay = true;
-            video.muted = true; // Свое видео всегда mute
+            video.muted = true; 
             video.id = 'video_local';
             
             const label = document.createElement('div');
@@ -700,7 +834,7 @@
             
             videoWrapper.appendChild(video);
             videoWrapper.appendChild(label);
-            VIDEO_GRID.prepend(videoWrapper); // Свое видео ставим первым
+            VIDEO_GRID.prepend(videoWrapper); 
             
             video.onloadedmetadata = () => video.play();
         }
@@ -733,7 +867,7 @@
             }
         }
         
-        // --- 4. УПРАВЛЕНИЕ ЧАТОМ И ГОЛОСОВЫМИ SMS ---
+        // --- 4. УПРАВЛЕНИЕ ЧАТОМ ---
 
         function appendMessage(text, className, sender = 'Вы') {
             const messageContainer = document.createElement('div');
@@ -741,27 +875,22 @@
             
             const bubble = document.createElement('div');
             bubble.className = 'message-bubble';
-
+            
             if (className.includes('system')) {
-                bubble.textContent = text;
+                messageContainer.textContent = text;
+                messageContainer.className = 'system-message';
             } else {
-                // Обычное сообщение
                 const nameTag = document.createElement('strong');
                 nameTag.textContent = sender;
                 
-                const textNode = document.createTextNode(text.replace(`[${sender}] `, ''));
+                const textNode = document.createTextNode(text);
 
                 bubble.appendChild(nameTag);
                 bubble.appendChild(textNode);
+                messageContainer.appendChild(bubble);
             }
             
-            messageContainer.appendChild(bubble);
-            CHAT_BOX.prepend(messageContainer); // Добавляем в начало для column-reverse
-            
-            // Если чат не на мобилке, можем скрыть сайдбар
-            if (window.innerWidth <= 768 && className.includes('received')) {
-                toggleSidebar(false);
-            }
+            CHAT_BOX.prepend(messageContainer); 
         }
 
         function sendMessage() {
@@ -791,21 +920,22 @@
             if (!mediaRecorder || mediaRecorder.state === "inactive") {
                 // НАЧАЛО ЗАПИСИ
                 if (!stream || !stream.getAudioTracks().length) {
-                    // Если потока нет, пытаемся получить только аудио
                     try {
                         stream = await navigator.mediaDevices.getUserMedia({ audio: true, video: false });
-                        addLocalVideo(stream); // добавляем заглушку, если видео нет
-                        // Обновляем все существующие peer-соединения новым потоком
-                        Object.values(peers).forEach(peer => {
-                             peer.addStream(stream);
-                        });
+                        Object.values(peers).forEach(peer => peer.addStream(stream));
                     } catch (e) {
                         alert("Не удалось получить доступ к микрофону.");
                         return;
                     }
                 }
                 
-                mediaRecorder = new MediaRecorder(stream);
+                // Проверяем доступные типы mime для MediaRecorder
+                const mimeType = MediaRecorder.isTypeSupported('audio/ogg; codecs=opus') 
+                                ? 'audio/ogg; codecs=opus' 
+                                : MediaRecorder.isTypeSupported('audio/webm; codecs=opus') 
+                                ? 'audio/webm; codecs=opus' : 'audio/webm';
+                
+                mediaRecorder = new MediaRecorder(stream, { mimeType: mimeType });
                 audioChunks = [];
 
                 mediaRecorder.ondataavailable = event => {
@@ -833,7 +963,9 @@
         }
         
         function sendVoiceMessage() {
-            const audioBlob = new Blob(audioChunks, { 'type' : 'audio/ogg; codecs=opus' });
+            if (audioChunks.length === 0) return;
+            
+            const audioBlob = new Blob(audioChunks, { 'type' : mediaRecorder.mimeType });
             
             // 1. Отправляем свое сообщение в чат
             appendVoiceMessage(audioBlob, 'sent-message', 'Вы');
@@ -855,154 +987,79 @@
         }
 
         function handleReceivedAudio(arrayBuffer, sender) {
-            const blob = new Blob([arrayBuffer], { type: 'audio/ogg' });
+            // Тип MIME может быть неизвестен, используем общий webm/ogg для WebRTC
+            const blob = new Blob([arrayBuffer], { type: 'audio/webm' }); 
             appendVoiceMessage(blob, 'received-message', sender);
             
-            // Удаляем системное сообщение "Отправляет голосовое сообщение..."
+            // Удаляем временное системное сообщение
             const systemMessages = CHAT_BOX.querySelectorAll('.system-message');
-            if(systemMessages.length > 0) {
-                 // Находим и удаляем самое свежее, которое может быть нашим
-                 for(let i = 0; i < systemMessages.length; i++) {
-                     if(systemMessages[i].textContent.includes(`[${sender}] Отправляет голосовое сообщение...`)) {
-                         systemMessages[i].remove();
-                         break;
-                     }
-                 }
+            for (let i = 0; i < systemMessages.length; i++) {
+                if (systemMessages[i].textContent.includes('Отправляет голосовое сообщение')) {
+                    systemMessages[i].remove();
+                    break; 
+                }
             }
         }
         
-        function appendVoiceMessage(audioBlob, className, sender) {
-             const audioUrl = URL.createObjectURL(audioBlob);
-             
-             const messageContainer = document.createElement('div');
-             messageContainer.className = className;
-             
-             const bubble = document.createElement('div');
-             bubble.className = 'message-bubble';
-             
-             const nameTag = document.createElement('strong');
-             nameTag.textContent = sender;
-             
-             const voiceContainer = document.createElement('div');
-             voiceContainer.className = 'voice-message-container';
-             
-             const icon = document.createElement('i');
-             icon.className = 'material-icons voice-icon';
-             icon.textContent = 'volume_up';
-             
-             const audio = document.createElement('audio');
-             audio.controls = true;
-             audio.src = audioUrl;
+        function appendVoiceMessage(audioBlob, className, sender = 'Вы') {
+            const messageContainer = document.createElement('div');
+            messageContainer.className = className;
 
-             bubble.appendChild(nameTag);
-             voiceContainer.appendChild(icon);
-             voiceContainer.appendChild(audio);
-             bubble.appendChild(voiceContainer);
-             messageContainer.appendChild(bubble);
-             
-             CHAT_BOX.prepend(messageContainer);
-        }
+            const bubble = document.createElement('div');
+            bubble.className = 'message-bubble voice-message-container';
 
-        // --- 6. ДОПОЛНИТЕЛЬНЫЕ ФУНКЦИИ UI / УПРАВЛЕНИЕ МЕДИА ---
+            const nameTag = document.createElement('strong');
+            nameTag.textContent = sender;
 
-        function updateUserList(users) {
-            USER_LIST_BOX.innerHTML = '';
-            document.getElementById('user_count').textContent = `(${users.length + 1})`; // +1 для себя
-            
-            // Добавляем себя
-            const selfItem = document.createElement('li');
-            selfItem.className = 'user-item';
-            selfItem.innerHTML = `<span class="status-icon" style="background-color: var(--primary-color);"></span> <span>${nickname} (Вы)</span>`;
-            USER_LIST_BOX.appendChild(selfItem);
+            const icon = document.createElement('i');
+            icon.className = 'material-icons voice-icon';
+            icon.textContent = 'volume_up';
 
-            // Добавляем других пользователей
-            users.filter(u => u !== nickname).forEach(userNick => {
-                const item = document.createElement('li');
-                item.className = 'user-item';
-                item.innerHTML = `<span class="status-icon"></span> <span>${userNick}</span>`;
-                USER_LIST_BOX.appendChild(item);
-            });
+            const audioUrl = URL.createObjectURL(audioBlob);
+            const audio = document.createElement('audio');
+            audio.controls = true;
+            audio.src = audioUrl;
 
-            // Инициируем медиа, если список не пуст (для P2P)
-            if (users.length > 0 && !stream) {
-                startMedia();
-            } else if (users.length === 0) {
-                // Если никого нет, останавливаем медиа, чтобы не тратить ресурсы
-                hangUp(); 
-            }
+            bubble.appendChild(nameTag);
+            bubble.appendChild(icon);
+            bubble.appendChild(audio);
+
+            messageContainer.appendChild(bubble);
+            CHAT_BOX.prepend(messageContainer);
         }
         
-        function toggleSidebar(force) {
+        // --- 6. УПРАВЛЕНИЕ UI (МОБИЛЬНЫЙ РЕЖИМ) ---
+        
+        function toggleSidebar(show) {
             const panel = document.getElementById('left_panel');
             const overlay = document.getElementById('overlay');
-            
             const isActive = panel.classList.contains('active');
-
-            if (force === true || (!isActive && force === undefined)) {
-                panel.classList.add('active');
-                overlay.classList.add('active');
-            } else if (force === false || (isActive && force === undefined)) {
-                panel.classList.remove('active');
-                overlay.classList.remove('active');
-            }
-        }
-
-        function toggleAudio() {
-            const audioTrack = stream ? stream.getAudioTracks()[0] : null;
-            const button = document.getElementById('audioToggle');
-            const icon = button.querySelector('.material-icons');
-
-            if (audioTrack) {
-                audioTrack.enabled = !audioTrack.enabled;
-                if (audioTrack.enabled) {
-                    icon.textContent = 'mic';
-                    button.style.backgroundColor = 'var(--input-bg)';
-                } else {
-                    icon.textContent = 'mic_off';
-                    button.style.backgroundColor = 'var(--danger-color)';
-                }
-            }
-        }
-
-        function toggleVideo() {
-            const videoTrack = stream ? stream.getVideoTracks()[0] : null;
-            const button = document.getElementById('videoToggle');
-            const icon = button.querySelector('.material-icons');
-
-            if (videoTrack) {
-                videoTrack.enabled = !videoTrack.enabled;
-                if (videoTrack.enabled) {
-                    icon.textContent = 'videocam';
-                    button.style.backgroundColor = 'var(--input-bg)';
-                } else {
-                    icon.textContent = 'videocam_off';
-                    button.style.backgroundColor = 'var(--danger-color)';
-                }
-            }
-        }
-
-        function hangUp() {
-             if (stream) {
-                stream.getTracks().forEach(track => track.stop());
-                stream = null;
-            }
-            // Удаляем свое видео
-            const localWrapper = document.getElementById('wrapper_local');
-            if (localWrapper) localWrapper.remove();
             
-            // Отключаем кнопки
-            document.getElementById('audioToggle').style.backgroundColor = 'var(--input-bg)';
-            document.getElementById('videoToggle').style.backgroundColor = 'var(--input-bg)';
-            document.getElementById('audioToggle').querySelector('.material-icons').textContent = 'mic_none';
-            document.getElementById('videoToggle').querySelector('.material-icons').textContent = 'videocam_off';
-
-            CALL_STATUS_DISPLAY.textContent = 'Медиа: НЕАКТИВНО';
+            if (show === false && isActive) {
+                 panel.classList.remove('active');
+                 overlay.classList.remove('active');
+                 return;
+            }
+            
+            if (window.innerWidth <= 768) {
+                if (isActive) {
+                    panel.classList.remove('active');
+                    overlay.classList.remove('active');
+                } else {
+                    panel.classList.add('active');
+                    overlay.classList.add('active');
+                }
+            }
         }
 
-        // Автозапуск медиа при наличии потока (например, если кто-то присоединился)
-        document.addEventListener('DOMContentLoaded', () => {
-            document.getElementById('nickname_input').focus();
-        });
+        // Инициализация при загрузке страницы
+        window.onload = () => {
+             // Проверка, что SimplePeer загружен
+             if (typeof SimplePeer === 'undefined') {
+                 STATUS_DISPLAY.textContent = '[СИСТЕМА] ОШИБКА: SimplePeer не загружен.';
+             }
+        };
+
     </script>
 </body>
 </html>
