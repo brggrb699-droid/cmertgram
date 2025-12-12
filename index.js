@@ -1,133 +1,138 @@
-// index.js (Сервер, адаптированный для Render)
-
-const http = require('http');
 const express = require('express');
+const http = require('http');
 const { Server } = require('socket.io');
 const path = require('path');
-const fs = require('fs');
 
 const app = express();
 const server = http.createServer(app);
 
-// Порт для Render: используем переменную окружения PORT, если доступна, или 3000 локально.
-const PORT = process.env.PORT || 3000;
-
-// Настройка Socket.io с явным указанием CORS для продакшена.
-// Render предоставляет нам публичный URL, который будет добавлен в allowdOrigins.
+// Настройка Socket.IO для работы на Render
+// Добавляем CORS, чтобы клиент (index.html) мог подключаться
 const io = new Server(server, {
     cors: {
-        // В продакшене лучше указать точный домен Render.
-        // Для простоты, разрешаем все источники (*), но это не рекомендуется для высокой безопасности.
-        // Если вы знаете свой домен Render (например, https://my-app-name.onrender.com),
-        // используйте: origin: ["https://my-app-name.onrender.com"],
-        origin: "*", 
+        origin: "*", // Разрешаем всем, так как это общедоступный чат
         methods: ["GET", "POST"]
-    }
+    },
+    transports: ['websocket', 'polling'] // Указываем транспорт
 });
 
-// Хранилище пользователей: { socketId: nickname }
-const users = {}; 
+const PORT = process.env.PORT || 3000;
 
-// --- Маршрутизация HTTP ---
+// Хранилище пользователей: { socket.id: nickname }
+const users = {};
+// Хранилище для обратного поиска: { nickname: socket.id }
+const nicknames = {};
 
-// Отдаем index.html при обращении к корню
-const htmlPath = path.join(__dirname, 'index.html');
-if (fs.existsSync(htmlPath)) {
-    app.get('/', (req, res) => {
-        res.sendFile(htmlPath);
-    });
-} else {
-    // Если index.html не найден, отдаем его через Express, 
-    // чтобы Render не выдал ошибку 404
-    app.get('/', (req, res) => {
-        res.send('<h1>Ошибка: index.html не найден.</h1><p>Убедитесь, что оба файла находятся в корневой директории.</p>');
-    });
+// Обслуживание статических файлов (index.html)
+app.use(express.static(__dirname));
+
+app.get('/', (req, res) => {
+    res.sendFile(path.join(__dirname, 'index.html'));
+});
+
+// --- Функции сервера ---
+
+/** Обновление и рассылка списка пользователей */
+function broadcastUserList() {
+    const userList = Object.values(users);
+    io.emit('user_list', userList);
 }
 
+/** Отправка системного сообщения всем */
+function sendSystemMessage(content) {
+    const message = {
+        type: 'system',
+        sender: 'Система',
+        content: content,
+        timestamp: new Date().toLocaleTimeString('ru-RU', { hour: '2-digit', minute: '2-digit' })
+    };
+    io.emit('public_message', message);
+}
 
-// --- Обработка Socket.io ---
-
+// --- Обработка соединений Socket.IO ---
 io.on('connection', (socket) => {
-    // Вся логика регистрации, public_message, private_message и disconnect 
-    // остается такой же, как в оригинальной версии, так как она не зависит от порта.
-    
-    // [1] Регистрация/Вход
+    console.log('Новое соединение:', socket.id);
+
+    // 1. Регистрация
     socket.on('register', (nickname) => {
-        const isNicknameTaken = Object.values(users).includes(nickname);
-        if (isNicknameTaken) {
-            socket.emit('registration_error', `Никнейм "${nickname}" уже занят.`);
+        const cleanNickname = nickname.trim().substring(0, 15);
+        
+        if (!cleanNickname || cleanNickname === 'Система') {
+            socket.emit('registration_error', 'Некорректный никнейм.');
             return;
         }
 
-        users[socket.id] = nickname;
-        socket.emit('registration_success', nickname);
+        if (Object.values(users).includes(cleanNickname)) {
+            socket.emit('registration_error', `Никнейм "${cleanNickname}" уже занят.`);
+            return;
+        }
 
-        io.emit('user_list', Object.values(users));
-
-        io.emit('public_message', { 
-            type: 'system', 
-            sender: 'Система', 
-            content: `**${nickname}** присоединился(ась) к чату.` 
-        });
+        // Успешная регистрация
+        users[socket.id] = cleanNickname;
+        nicknames[cleanNickname] = socket.id;
+        
+        socket.emit('registration_success', cleanNickname);
+        sendSystemMessage(`Пользователь **${cleanNickname}** присоединился к чату.`);
+        broadcastUserList();
+        console.log(`Пользователь зарегистрирован: ${cleanNickname}`);
     });
 
-    // [2] Общее сообщение
+    // 2. Общее сообщение (ИСПРАВЛЕННАЯ ЛОГИКА)
     socket.on('public_message', (encryptedContent) => {
-        const sender = users[socket.id] || 'Неизвестный';
+        const sender = users[socket.id];
+        if (!sender) return; // Игнорируем, если пользователь не зарегистрирован
+
         const message = {
             type: 'public',
             sender: sender,
             content: encryptedContent, 
             timestamp: new Date().toLocaleTimeString('ru-RU', { hour: '2-digit', minute: '2-digit' })
         };
-        io.emit('public_message', message); 
-    });
-
-    // [3] Приватное сообщение
-    socket.on('private_message', (data) => {
-        const senderNickname = users[socket.id];
-        const { recipientNickname, encryptedContent } = data;
         
-        const recipientSocketId = Object.keys(users).find(key => users[key] === recipientNickname);
-
-        if (recipientSocketId) {
-            const message = {
-                type: 'private',
-                sender: senderNickname,
-                content: encryptedContent,
-                timestamp: new Date().toLocaleTimeString('ru-RU', { hour: '2-digit', minute: '2-digit' })
-            };
-            
-            io.to(recipientSocketId).emit('private_message', message);
-            socket.emit('private_message', { ...message, recipient: recipientNickname });
-        } else {
-            socket.emit('public_message', { 
-                type: 'system', 
-                sender: 'Система', 
-                content: `Пользователь **${recipientNickname}** не найден или не в сети.` 
-            });
-        }
+        // Отправляем всем клиентам
+        io.emit('public_message', message);
     });
 
-    // [4] Отключение
-    socket.on('disconnect', () => {
-        const nickname = users[socket.id];
-        if (nickname) {
-            delete users[socket.id];
-            
-            io.emit('user_list', Object.values(users));
+    // 3. Приватное сообщение
+    socket.on('private_message', (data) => {
+        const sender = users[socket.id];
+        const recipientSocketId = nicknames[data.recipientNickname];
 
-            io.emit('public_message', { 
-                type: 'system', 
-                sender: 'Система', 
-                content: `**${nickname}** покинул(а) чат.` 
-            });
+        if (!sender || !recipientSocketId) {
+             console.log(`Ошибка: Отправитель не найден или получатель "${data.recipientNickname}" не в сети.`);
+             // Можно отправить уведомление только отправителю об ошибке
+             return;
+        }
+        
+        const message = {
+            type: 'private',
+            sender: sender,
+            recipient: data.recipientNickname,
+            content: data.encryptedContent,
+            timestamp: new Date().toLocaleTimeString('ru-RU', { hour: '2-digit', minute: '2-digit' })
+        };
+        
+        // Отправка получателю
+        io.to(recipientSocketId).emit('private_message', message);
+        // Отправка обратно отправителю (для отображения своего сообщения)
+        io.to(socket.id).emit('private_message', message);
+    });
+
+    // 4. Отключение
+    socket.on('disconnect', () => {
+        const disconnectedUser = users[socket.id];
+        if (disconnectedUser) {
+            delete nicknames[disconnectedUser];
+            delete users[socket.id];
+
+            sendSystemMessage(`Пользователь **${disconnectedUser}** покинул чат.`);
+            broadcastUserList();
+            console.log(`Пользователь отключился: ${disconnectedUser}`);
         }
     });
 });
 
-// Запуск сервера с динамическим портом
+// Запуск сервера
 server.listen(PORT, () => {
-    console.log(`Сервер запущен на порту: ${PORT}`);
-    console.log('Для локальной разработки используйте http://localhost:3000');
+    console.log(`Сервер запущен на порту ${PORT}`);
 });
