@@ -1,0 +1,13 @@
+{
+  "name": "cmertgramm-messenger",
+  "version": "1.0.0",
+  "description": "Global WebSocket Messenger for Node.js",
+  "main": "index.js",
+  "scripts": {
+    "start": "node index.js"
+  },
+  "dependencies": {
+    "express": "^4.18.2",
+    "ws": "^8.13.0"
+  }
+}
