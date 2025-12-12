@@ -1,807 +1,209 @@
-<!DOCTYPE html>
+   <!DOCTYPE html>
 <html lang="ru">
 <head>
-<meta charset="UTF-8" />
-<meta name="viewport" content="width=device-width, initial-scale=1" />
-<title>CmertGramm — Глобальный Мессенджер (Replit)</title>
-<style>
-  :root {
-    --bg-light: #f9f9f9;
-    --bg-dark: #1e1e1e;
-    --text-light: #222;
-    --text-dark: #ddd;
-    --primary: #0088cc;
-    --accent: #00bfff;
-  }
-  body.light {
-    background: var(--bg-light);
-    color: var(--text-light);
-  }
-  body.dark {
-    background: var(--bg-dark);
-    color: var(--text-dark);
-  }
-  #app {
-    max-width: 900px;
-    margin: 0 auto;
-    height: 100vh;
-    display: flex;
-    flex-direction: column;
-    font-family: "Segoe UI", Tahoma, Geneva, Verdana, sans-serif;
-  }
-  header {
-    padding: 10px;
-    background: var(--primary);
-    color: white;
-    display: flex;
-    justify-content: space-between;
-    align-items: center;
-  }
-  #themeToggle {
-    cursor: pointer;
-    background: var(--accent);
-    border: none;
-    padding: 6px 12px;
-    border-radius: 4px;
-    color: white;
-    font-weight: bold;
-  }
-  main {
-    flex: 1;
-    display: flex;
-    flex-direction: column;
-    background: inherit;
-    color: inherit;
-  }
-  #chatWindow {
-    flex: 1;
-    padding: 10px;
-    overflow-y: auto;
-    border: 1px solid #ccc;
-    background: inherit;
-    display: flex;
-    flex-direction: column;
-  }
-  .msg {
-    margin-bottom: 10px;
-    max-width: 70%;
-    word-wrap: break-word;
-    padding: 8px 12px;
-    border-radius: 12px;
-    position: relative;
-    display: flex;
-    gap: 8px;
-    align-items: center;
-  }
-  .msg.self {
-    background: #dcf8c6;
-    align-self: flex-end;
-    flex-direction: row-reverse;
-  }
-  .msg.other {
-    background: #fff;
-    align-self: flex-start;
-  }
-  .msg img {
-    max-width: 200px;
-    border-radius: 10px;
-    display: block;
-  }
-  .msg audio {
-    max-width: 200px;
-    display: block;
-  }
-  .msg .msgText {
-    flex: 1;
-  }
-  .msg .deleteBtn {
-    cursor: pointer;
-    font-weight: bold;
-    color: #c0392b;
-    background: transparent;
-    border: none;
-    font-size: 18px;
-    line-height: 1;
-    user-select: none;
-  }
-  #inputArea {
-    padding: 10px;
-    border-top: 1px solid #ccc;
-    display: flex;
-    gap: 6px;
-  }
-  #msgInput {
-    flex: 1;
-    padding: 8px;
-    font-size: 1rem;
-    border-radius: 8px;
-    border: 1px solid #aaa;
-  }
-  button {
-    cursor: pointer;
-    border: none;
-    border-radius: 8px;
-    padding: 8px 12px;
-    background: var(--primary);
-    color: white;
-    font-weight: bold;
-  }
-  #clearChat {
-    background: #e74c3c;
-  }
-  #userSettings {
-    background: #eee;
-    padding: 12px;
-    display: flex;
-    align-items: center;
-    gap: 12px;
-    flex-wrap: wrap;
-    border-bottom: 1px solid #ccc;
-  }
-  #nicknameInput, #recipientInput { /* ДОБАВЛЕН #recipientInput */
-    padding: 6px 8px;
-    font-size: 1rem;
-    border-radius: 6px;
-    border: 1px solid #aaa;
-    width: 180px;
-  }
-  #avatarPreview {
-    width: 40px;
-    height: 40px;
-    border-radius: 50%;
-    object-fit: cover;
-    border: 2px solid var(--primary);
-  }
-  #avatarURL {
-    width: 200px;
-    padding: 6px 8px;
-    border-radius: 6px;
-    border: 1px solid #aaa;
-  }
-  #avatarFile {
-    display: none;
-  }
-  #avatarFileLabel {
-    cursor: pointer;
-    background: var(--primary);
-    color: white;
-    padding: 8px 16px;
-    border-radius: 8px;
-    font-weight: bold;
-    user-select: none;
-    transition: background 0.3s ease;
-  }
-  #avatarFileLabel:hover {
-    background: var(--accent);
-  }
-  #voiceRecordBtn {
-    background: #27ae60;
-  }
-  #callBtn {
-    background: #2980b9;
-  }
-  #incomingCallModal {
-    position: fixed;
-    top: 30%;
-    left: 50%;
-    transform: translate(-50%, -50%);
-    background: #222;
-    color: #fff;
-    padding: 20px;
-    border-radius: 12px;
-    box-shadow: 0 0 15px #000;
-    z-index: 1000;
-    display: none;
-    min-width: 300px;
-  }
-  #incomingCallModal button {
-    margin-right: 10px;
-    background: #3498db;
-  }
-  #incomingCallBackdrop {
-    position: fixed;
-    top: 0; left: 0; right: 0; bottom: 0;
-    background: rgba(0,0,0,0.5);
-    z-index: 900;
-    display: none;
-  }
-  #chatWindow::-webkit-scrollbar {
-    width: 8px;
-  }
-  #chatWindow::-webkit-scrollbar-thumb {
-    background: var(--primary);
-    border-radius: 4px;
-  }
-</style>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>[SYSTEM] Broadcast Chat v1.0</title>
+    <style>
+        /* [HACKER_STYLE] Стилизация под консоль */
+        body {
+            background-color: #000000; /* Черный фон */
+            color: #00FF00; /* Ярко-зеленый текст */
+            font-family: 'Consolas', 'Monospace', monospace; /* Моноширинный шрифт */
+            margin: 0;
+            padding: 20px;
+            display: flex;
+            flex-direction: column;
+            height: 100vh;
+        }
+
+        .chat-container {
+            flex-grow: 1;
+            display: flex;
+            flex-direction: column;
+            max-width: 800px;
+            margin: 0 auto;
+            width: 100%;
+            border: 1px solid #00FF00; /* Зеленая рамка */
+            padding: 10px;
+        }
+
+        .chat-box {
+            flex-grow: 1;
+            overflow-y: auto;
+            margin-bottom: 10px;
+            padding: 5px;
+            border-bottom: 1px solid #00AA00;
+        }
+
+        .chat-box p {
+            margin: 0 0 5px 0;
+            line-height: 1.2;
+            word-wrap: break-word; /* Перенос длинных слов */
+        }
+        
+        .system-message {
+            color: #FF00FF; /* Фиолетовый для системных сообщений */
+        }
+
+        .form-group, .message-input {
+            display: flex;
+            margin-bottom: 10px;
+        }
+
+        input[type="text"] {
+            background-color: #111111;
+            color: #00FF00;
+            border: 1px solid #00FF00;
+            padding: 5px;
+            flex-grow: 1;
+            margin-right: 5px;
+            font-family: inherit;
+        }
+
+        button {
+            background-color: #008800;
+            color: #000000;
+            border: 1px solid #00FF00;
+            padding: 5px 10px;
+            cursor: pointer;
+            font-family: inherit;
+            font-weight: bold;
+        }
+
+        button:hover {
+            background-color: #00AA00;
+        }
+
+        #nickname_display {
+            margin-bottom: 10px;
+            color: #FFFF00; /* Желтый для ника */
+            font-size: 1.1em;
+        }
+    </style>
 </head>
-<body class="light">
+<body>
 
-<div id="app">
-  <header>
-    <div><strong>CmertGramm (Global Mode)</strong></div>
-    <button id="themeToggle">Тёмная тема</button>
-  </header>
+    <div class="chat-container">
+        
+        <p id="nickname_display">NICKNAME: [PENDING]</p>
+        
+        <div class="form-group" id="nick_form">
+            <input type="text" id="nickname_input" placeholder="ENTER NICKNAME" required>
+            <button onclick="saveNickname()">[SET_NICK]</button>
+        </div>
 
-  <div id="userSettings">
-    <input type="text" id="nicknameInput" placeholder="Введите ваш ник" maxlength="20" title="Ваш ник" />
-    <input type="text" id="recipientInput" placeholder="Ник получателя для связи" maxlength="20" title="Ник получателя" /> <input type="text" id="avatarURL" placeholder="URL аватара или оставь пустым" title="URL аватара" />
-    <input type="file" id="avatarFile" accept="image/*" title="Загрузить аватар" />
-    <label for="avatarFile" id="avatarFileLabel" title="Выбрать файл">Выбрать файл</label>
-    <img id="avatarPreview" src="https://cdn-icons-png.flaticon.com/512/149/149071.png" alt="Аватар" title="Превью аватара" />
-    <button id="saveUserBtn" title="Сохранить настройки">Сохранить</button>
-  </div>
+        <div class="chat-box" id="chat_box">
+            </div>
 
-  <main>
-    <div id="chatWindow" aria-live="polite" aria-atomic="false"></div>
-    <div id="inputArea">
-      <input id="msgInput" type="text" placeholder="Введите сообщение..." autocomplete="off" aria-label="Сообщение" />
-      <button id="sendBtn" title="Отправить сообщение">Отправить</button>
-      <button id="voiceRecordBtn" title="Записать голосовое сообщение">🎙️</button>
-      <button id="callBtn" title="Начать звонок">📞</button>
-      <button id="clearChat" title="Очистить чат у себя">Очистить чат</button>
+        <div class="message-input">
+            <input type="text" id="message_input" placeholder=">>> ENTER COMMAND OR MESSAGE..." onkeydown="if(event.keyCode===13) sendMessage()" disabled>
+            <button onclick="sendMessage()" id="send_button" disabled>[TRANSMIT]</button>
+        </div>
     </div>
-  </main>
-</div>
 
-<div id="incomingCallBackdrop"></div>
-<div id="incomingCallModal" role="dialog" aria-modal="true" aria-labelledby="callTitle" aria-describedby="callDesc">
-  <h3 id="callTitle">Входящий звонок</h3>
-  <p id="callDesc">Пользователь хочет с вами поговорить. Принять звонок?</p>
-  <button id="acceptCallBtn">Принять</button>
-  <button id="declineCallBtn">Отклонить</button>
-</div>
+    <script>
+        const ws = new WebSocket(`wss://${window.location.host}`);
+        const chatBox = document.getElementById('chat_box');
+        const messageInput = document.getElementById('message_input');
+        const sendButton = document.getElementById('send_button');
+        const nicknameDisplay = document.getElementById('nickname_display');
 
-<script>
-(() => {
-  // --- Тема ---
-  const body = document.body;
-  const themeToggle = document.getElementById('themeToggle');
-  const savedTheme = localStorage.getItem('theme') || 'light';
-  body.className = savedTheme;
-  themeToggle.textContent = savedTheme === 'light' ? 'Тёмная тема' : 'Светлая тема';
-
-  themeToggle.addEventListener('click', () => {
-    if (body.classList.contains('light')) {
-      body.classList.replace('light', 'dark');
-      themeToggle.textContent = 'Светлая тема';
-      localStorage.setItem('theme', 'dark');
-    } else {
-      body.classList.replace('dark', 'light');
-      themeToggle.textContent = 'Тёмная тема';
-      localStorage.setItem('theme', 'light');
-    }
-  });
-
-  // --- Юзер ---
-  const nicknameInput = document.getElementById('nicknameInput');
-  const recipientInput = document.getElementById('recipientInput'); // НОВОЕ ПОЛЕ
-  const avatarURLInput = document.getElementById('avatarURL');
-  const avatarFileInput = document.getElementById('avatarFile');
-  const avatarPreview = document.getElementById('avatarPreview');
-  const saveUserBtn = document.getElementById('saveUserBtn');
-
-  // Загрузка из localStorage
-  let userData = JSON.parse(localStorage.getItem('userData')) || {
-    nickname: '',
-    avatar: 'https://cdn-icons-png.flaticon.com/512/149/149071.png'
-  };
-  nicknameInput.value = userData.nickname;
-  avatarPreview.src = userData.avatar;
-  avatarURLInput.value = userData.avatar.startsWith('blob:') ? '' : userData.avatar;
-  recipientInput.value = localStorage.getItem('recipientNick') || ''; // Загрузка ника получателя
-
-  avatarURLInput.addEventListener('input', () => {
-    if (avatarURLInput.value.trim()) {
-      avatarPreview.src = avatarURLInput.value.trim();
-      userData.avatar = avatarURLInput.value.trim();
-      localStorage.setItem('userData', JSON.stringify(userData));
-    }
-  });
-
-  avatarFileInput.addEventListener('change', (e) => {
-    const file = e.target.files[0];
-    if (!file) return;
-    if (!file.type.startsWith('image/')) {
-      alert('Выберите изображение');
-      return;
-    }
-    const reader = new FileReader();
-    reader.onload = (ev) => {
-      avatarPreview.src = ev.target.result;
-      userData.avatar = ev.target.result;
-      avatarURLInput.value = '';
-      localStorage.setItem('userData', JSON.stringify(userData));
-    };
-    reader.readAsDataURL(file);
-  });
-
-  saveUserBtn.addEventListener('click', () => {
-    const nick = nicknameInput.value.trim() || 'Аноним';
-    userData.nickname = nick;
-    if (avatarURLInput.value.trim()) {
-      userData.avatar = avatarURLInput.value.trim();
-    }
-    localStorage.setItem('userData', JSON.stringify(userData));
-    localStorage.setItem('recipientNick', recipientInput.value.trim()); // Сохранение получателя
-    
-    // Переподключение с новым ником
-    if (ws && ws.readyState === WebSocket.OPEN) {
-        ws.close();
-        connectWebSocket();
-    } else if (!ws) {
-        connectWebSocket();
-    }
-    alert('Настройки сохранены. Если вы сменили ник, проверьте подключение.');
-  });
-  
-  // Сохранение ника получателя при вводе
-  recipientInput.addEventListener('input', () => {
-    localStorage.setItem('recipientNick', recipientInput.value.trim());
-  });
-
-  // --- Чат ---
-  const chatWindow = document.getElementById('chatWindow');
-  const msgInput = document.getElementById('msgInput');
-  const sendBtn = document.getElementById('sendBtn');
-  const clearChatBtn = document.getElementById('clearChat');
-
-  // Хранение сообщений в localStorage (Оставляем для истории, но сетевой логикой не управляем)
-  let chatMessages = JSON.parse(localStorage.getItem('chatMessages')) || [];
-
-  function renderMessages() {
-    chatWindow.innerHTML = '';
-    chatMessages.forEach(({id, from, avatar, text, img, audio, self}) => {
-      const div = document.createElement('div');
-      div.classList.add('msg');
-      div.classList.add(self ? 'self' : 'other');
-      div.dataset.id = id;
-
-      // Аватар
-      const imgAvatar = document.createElement('img');
-      imgAvatar.src = avatar || 'https://cdn-icons-png.flaticon.com/512/149/149071.png';
-      imgAvatar.alt = from + ' avatar';
-      imgAvatar.title = from;
-      imgAvatar.style.width = '32px';
-      imgAvatar.style.height = '32px';
-      imgAvatar.style.borderRadius = '50%';
-
-      // Контент сообщения
-      const contentDiv = document.createElement('div');
-      contentDiv.classList.add('msgText');
-      if (text) contentDiv.textContent = text;
-      if (img) {
-        const imgel = document.createElement('img');
-        imgel.src = img;
-        contentDiv.innerHTML = '';
-        contentDiv.appendChild(imgel);
-      }
-      if (audio) {
-        const aud = document.createElement('audio');
-        aud.controls = true;
-        aud.src = audio;
-        contentDiv.innerHTML = '';
-        contentDiv.appendChild(aud);
-      }
-      
-      // Кнопка удаления (только для локальной истории)
-      const delBtn = document.createElement('button');
-      delBtn.className = 'deleteBtn';
-      delBtn.title = 'Удалить сообщение';
-      delBtn.textContent = '×';
-      delBtn.addEventListener('click', () => {
-        chatMessages = chatMessages.filter(m => m.id !== id);
-        localStorage.setItem('chatMessages', JSON.stringify(chatMessages));
-        renderMessages();
-      });
-
-      div.appendChild(imgAvatar);
-      div.appendChild(contentDiv);
-      div.appendChild(delBtn);
-
-      chatWindow.appendChild(div);
-    });
-
-    // Скролл вниз
-    chatWindow.scrollTop = chatWindow.scrollHeight;
-  }
-
-  renderMessages();
-
-  function addMessage(msgObj) {
-    chatMessages.push(msgObj);
-    // Ограничение истории, чтобы не переполнить localStorage
-    if (chatMessages.length > 50) {
-        chatMessages = chatMessages.slice(chatMessages.length - 50);
-    }
-    localStorage.setItem('chatMessages', JSON.stringify(chatMessages));
-    renderMessages();
-  }
-  
-  // --- WebSocket & Сигнализация ---
-  // ВНИМАНИЕ: Замените на публичный URL вашего Repl, например: 'wss://my-cmertgram.repl.co'
-  const REPLIT_WS_URL = `wss://${window.location.host}`; // Используем текущий хост для Replit
-  let ws = null;
-  let isWsConnected = false;
-  
-  function encodePayload(data) {
-      return btoa(JSON.stringify(data)); 
-  }
-  
-  function sendSignal(type, payload) {
-      if (!isWsConnected || ws.readyState !== WebSocket.OPEN) {
-          alert('Соединение с сервером Replit не установлено. Обновите страницу или проверьте ник.');
-          return;
-      }
-      
-      const recipient = recipientInput.value.trim();
-      if (!recipient && (type === 'msg' || type.startsWith('call-'))) {
-          alert('Введите Ник получателя для отправки сообщения или звонка.');
-          return;
-      }
-      
-      const finalPayload = {
-          from: userData.nickname || 'Аноним',
-          avatar: userData.avatar,
-          recipient_nick: recipient, // Используем ник получателя
-          ...payload,
-          type: type
-      };
-      
-      ws.send(encodePayload(finalPayload));
-      
-      // Для исходящих сообщений - очистка поля, но не для сигналов
-      if (type === 'msg' && payload.text) {
-        msgInput.value = '';
-      }
-  }
-  
-  function connectWebSocket() {
-      if (ws && (ws.readyState === WebSocket.OPEN || ws.readyState === WebSocket.CONNECTING)) {
-          return;
-      }
-      
-      const host = window.location.host;
-      // Используем wss для Replit, если хост не локальный. 
-      const protocol = (host.includes('localhost') || host.includes('127.0.0.1')) ? 'ws' : 'wss';
-      const url = `${protocol}://${host}`;
-      
-      ws = new WebSocket(url);
-      
-      ws.onopen = () => {
-          isWsConnected = true;
-          console.log('[STEALTH] WebSocket: Подключен к Repl.co.');
-          
-          const initPayload = {
-              type: 'init',
-              nickname: userData.nickname || 'Аноним',
-              avatar: userData.avatar
-          };
-          // Отправка INIT-пакета с ником
-          ws.send(encodePayload(initPayload)); 
-      };
-
-      ws.onmessage = async (event) => {
-          const encrypted_data = event.data;
-          let data;
-          try {
-              data = JSON.parse(atob(encrypted_data)); 
-          } catch (e) {
-              console.error('[BYPASS] Не удалось декодировать/распарсить входящее сообщение.');
-              return;
-          }
-
-          // --- Обработка данных (ЧАТ И СИГНАЛИНГ) ---
-          switch (data.type) {
-              case 'msg':
-                  // Входящее сообщение. Добавляем его в ваш локальный чат.
-                  addMessage({
-                      id: Date.now(),
-                      from: data.from,
-                      avatar: data.avatar,
-                      text: data.text || null,
-                      audio: data.audio || null,
-                      self: false // Это входящее сообщение
-                  });
-                  break;
-                  
-              case 'status':
-              case 'error':
-                  alert(data.text);
-                  break;
-              
-              case 'call-offer':
-                  if (isCalling) {
-                      sendSignal('call-busy', { recipient_nick: data.from });
-                      return;
-                  }
-                  currentCall = data;
-                  document.getElementById('callTitle').textContent = `Входящий звонок от ${data.from}`;
-                  incomingCallModal.style.display = 'block';
-                  incomingCallBackdrop.style.display = 'block';
-                  break;
-
-              case 'call-answer':
-                  if (!isCalling || !peerConnection) return;
-                  await peerConnection.setRemoteDescription(new RTCSessionDescription(data.answer));
-                  alert('Звонок установлен! Можете говорить.');
-                  break;
-
-              case 'ice-candidate':
-                  if (peerConnection) {
-                      try {
-                          await peerConnection.addIceCandidate(new RTCIceCandidate(data.candidate));
-                      } catch (err) {
-                          console.warn('[ERROR] Ошибка добавления ICE кандидата', err);
-                      }
-                  }
-                  break;
-              
-              case 'call-decline':
-                  alert('Звонок отклонён или завершён');
-                  endCall();
-                  break;
-
-              case 'call-busy':
-                  alert('Пользователь занят звонком');
-                  endCall();
-                  break;
-          }
-      };
-
-      ws.onclose = () => {
-          isWsConnected = false;
-          console.warn('[BYPASS] WebSocket: Соединение потеряно. Переподключение через 5 сек...');
-          setTimeout(connectWebSocket, 5000);
-      };
-
-      ws.onerror = (err) => {
-          console.error('[ERROR] WebSocket:', err);
-          ws.close();
-      };
-  }
-
-  // Запускаем подключение при загрузке
-  window.addEventListener('load', connectWebSocket);
-
-
-  // --- Отправка текста ---
-  sendBtn.addEventListener('click', () => {
-    const txt = msgInput.value.trim();
-    if (!txt) return;
-    
-    // 1. Отправляем на сервер
-    sendSignal('msg', { text: txt });
-    
-    // 2. Добавляем сообщение локально (самому себе)
-    addMessage({
-      id: Date.now(),
-      from: userData.nickname || 'Аноним',
-      avatar: userData.avatar,
-      text: txt,
-      self: true
-    });
-  });
-
-  msgInput.addEventListener('keydown', e => {
-    if (e.key === 'Enter') {
-      sendBtn.click();
-    }
-  });
-
-  // --- Очистка чата ---
-  clearChatBtn.addEventListener('click', () => {
-    if (confirm('Вы уверены, что хотите очистить чат? Это удалит все сообщения только у вас.')) {
-      chatMessages = [];
-      localStorage.removeItem('chatMessages');
-      renderMessages();
-    }
-  });
-
-  // --- Голосовые сообщения ---
-  const voiceRecordBtn = document.getElementById('voiceRecordBtn');
-  let mediaRecorder = null;
-  let audioChunks = [];
-
-  voiceRecordBtn.addEventListener('click', () => {
-    if (mediaRecorder && mediaRecorder.state === 'recording') {
-      mediaRecorder.stop();
-      voiceRecordBtn.textContent = '🎙️';
-      voiceRecordBtn.title = 'Записать голосовое сообщение';
-      return;
-    }
-
-    if (!navigator.mediaDevices || !navigator.mediaDevices.getUserMedia) {
-      alert('Ваш браузер не поддерживает запись аудио.');
-      return;
-    }
-    navigator.mediaDevices.getUserMedia({ audio: true })
-      .then(stream => {
-        mediaRecorder = new MediaRecorder(stream);
-        audioChunks = [];
-
-        mediaRecorder.ondataavailable = e => audioChunks.push(e.data);
-        mediaRecorder.onstop = e => {
-          const audioBlob = new Blob(audioChunks, { type: 'audio/webm' });
-          const audioUrl = URL.createObjectURL(audioBlob);
-          
-          // 1. Отправка на сервер
-          sendSignal('msg', { audio: audioUrl }); 
-
-          // 2. Добавление локально
-          addMessage({
-            id: Date.now(),
-            from: userData.nickname || 'Аноним',
-            avatar: userData.avatar,
-            audio: audioUrl,
-            self: true
-          });
-          
-          stream.getTracks().forEach(t => t.stop());
+        // [WS_INIT] Обработка подключения
+        ws.onopen = function() {
+            displayMessage({ sender: 'SYSTEM', message: 'CONNECTION_SECURED. READY TO INJECT.' });
+            // Загрузка сохраненного ника
+            const savedNick = localStorage.getItem('nickname');
+            if (savedNick) {
+                document.getElementById('nickname_input').value = savedNick;
+                saveNickname();
+            }
         };
 
-        mediaRecorder.start();
-        voiceRecordBtn.textContent = '■ Стоп';
-        voiceRecordBtn.title = 'Остановить запись';
-      })
-      .catch(() => alert('Доступ к микрофону запрещён.'));
-  });
+        // [WS_RECEIVE] Обработка входящих сообщений
+        ws.onmessage = function(event) {
+            const data = JSON.parse(event.data);
+            displayMessage(data);
+        };
 
-  // --- WebRTC звонки через сервер ---
-  const callBtn = document.getElementById('callBtn');
-  const incomingCallModal = document.getElementById('incomingCallModal');
-  const incomingCallBackdrop = document.getElementById('incomingCallBackdrop');
-  const acceptCallBtn = document.getElementById('acceptCallBtn');
-  const declineCallBtn = document.getElementById('declineCallBtn');
+        // [WS_ERROR] Обработка ошибок
+        ws.onerror = function(error) {
+            displayMessage({ sender: 'ERROR', message: `NETWORK_FAILURE: ${error.message}` });
+        };
 
-  let localStream = null;
-  let peerConnection = null;
-  let isCalling = false;
-  let currentCall = null;
+        // [WS_CLOSE] Обработка закрытия
+        ws.onclose = function() {
+            displayMessage({ sender: 'SYSTEM', message: 'CONNECTION_LOST. RECONNECTING...' });
+            messageInput.disabled = true;
+            sendButton.disabled = true;
+        };
 
-  const config = {
-    iceServers: [{ urls: 'stun:stun.l.google.com:19302' }]
-  };
+        function saveNickname() {
+            const nickInput = document.getElementById('nickname_input');
+            const nickname = nickInput.value.trim();
 
-  function createPeerConnection() {
-    peerConnection = new RTCPeerConnection(config);
+            if (nickname.length < 2) {
+                alert("NICKNAME_ERROR: TOO SHORT (MIN 2 CHARACTERS)");
+                return;
+            }
 
-    peerConnection.onicecandidate = event => {
-      if (event.candidate) {
-        // Отправка ICE кандидата через сервер
-        sendSignal('ice-candidate', { candidate: event.candidate, recipient_nick: currentCall ? currentCall.from : recipientInput.value.trim() });
-      }
-    };
+            localStorage.setItem('nickname', nickname);
+            nicknameDisplay.innerHTML = `NICKNAME: [${nickname}]`;
+            
+            // Активация чата
+            messageInput.disabled = false;
+            sendButton.disabled = false;
+            nickInput.disabled = true;
+            document.getElementById('nick_form').querySelector('button').disabled = true;
+            messageInput.focus();
+            
+            displayMessage({ sender: 'SYSTEM', message: `NICKNAME_SET_TO: ${nickname}` });
+        }
 
-    peerConnection.ontrack = event => {
-      let remoteAudio = document.getElementById('remoteAudio');
-      if (!remoteAudio) {
-        remoteAudio = document.createElement('audio');
-        remoteAudio.id = 'remoteAudio';
-        remoteAudio.autoplay = true;
-        document.body.appendChild(remoteAudio);
-        alert('Звонок принят. Вы слышите собеседника.');
-      }
-      remoteAudio.srcObject = event.streams[0];
-    };
+        function sendMessage() {
+            const message = messageInput.value.trim();
+            const nickname = localStorage.getItem('nickname');
 
-    peerConnection.onconnectionstatechange = () => {
-      if (peerConnection.connectionState === 'disconnected' || peerConnection.connectionState === 'failed') {
-        endCall();
-        alert('Соединение разорвано.');
-      }
-    };
-  }
+            if (!message || !nickname) {
+                alert("NICKNAME_REQUIRED OR EMPTY MESSAGE.");
+                return;
+            }
 
-  async function startCall() {
-    if (isCalling) {
-      alert('Звонок уже идет');
-      return;
-    }
-    const recipientNick = recipientInput.value.trim();
-    if (!recipientNick) {
-        alert('Сначала введите ник получателя.');
-        return;
-    }
+            const message_data = {
+                sender: nickname,
+                message: message
+            };
 
-    try {
-      localStream = await navigator.mediaDevices.getUserMedia({ audio: true, video: false });
-      createPeerConnection();
+            // [TRANSMIT_DATA] Отправка сообщения
+            ws.send(JSON.stringify(message_data));
 
-      localStream.getTracks().forEach(track => {
-        peerConnection.addTrack(track, localStream);
-      });
+            messageInput.value = '';
+        }
 
-      const offer = await peerConnection.createOffer();
-      await peerConnection.setLocalDescription(offer);
+        function displayMessage(data) {
+            const messageElement = document.createElement('p');
+            let className = '';
 
-      // Отправка offer через сервер
-      sendSignal('call-offer', { offer, recipient_nick: recipientNick });
-      isCalling = true;
-      callBtn.disabled = true;
-      alert(`Звонок отправлен пользователю ${recipientNick}. Ожидайте ответа.`);
-    } catch (e) {
-      alert('Ошибка при попытке начать звонок: ' + e.message);
-      endCall();
-    }
-  }
+            // Определение стиля
+            if (data.sender === 'SYSTEM' || data.sender === 'ERROR') {
+                className = 'system-message';
+                messageElement.innerHTML = `[${data.sender}] ${data.message}`;
+            } else {
+                // Формат: [НИК]> Сообщение
+                messageElement.innerHTML = `<strong>[${data.sender}]</strong>> ${data.message}`;
+            }
+            
+            messageElement.className = className;
+            chatBox.appendChild(messageElement);
+            chatBox.scrollTop = chatBox.scrollHeight;
+        }
 
-  function endCall() {
-    if (peerConnection) {
-      peerConnection.close();
-      peerConnection = null;
-    }
-    if (localStream) {
-      localStream.getTracks().forEach(t => t.stop());
-      localStream = null;
-    }
-    isCalling = false;
-    callBtn.disabled = false;
-    incomingCallModal.style.display = 'none';
-    incomingCallBackdrop.style.display = 'none';
-
-    const remoteAudio = document.getElementById('remoteAudio');
-    if (remoteAudio) {
-      remoteAudio.srcObject = null;
-      remoteAudio.remove();
-    }
-  }
-  
-  // Принять звонок
-  acceptCallBtn.addEventListener('click', async () => {
-    incomingCallModal.style.display = 'none';
-    incomingCallBackdrop.style.display = 'none';
-
-    if (!currentCall) return;
-
-    try {
-      localStream = await navigator.mediaDevices.getUserMedia({ audio: true, video: false });
-      createPeerConnection();
-
-      localStream.getTracks().forEach(track => {
-        peerConnection.addTrack(track, localStream);
-      });
-
-      await peerConnection.setRemoteDescription(new RTCSessionDescription(currentCall.offer));
-      const answer = await peerConnection.createAnswer();
-      await peerConnection.setLocalDescription(answer);
-
-      // Отправка answer через сервер
-      sendSignal('call-answer', { answer, recipient_nick: currentCall.from });
-      
-      isCalling = true;
-      callBtn.disabled = true;
-      currentCall = null;
-    } catch (e) {
-      alert('Ошибка при приеме звонка: ' + e.message);
-      endCall();
-    }
-  });
-
-  declineCallBtn.addEventListener('click', () => {
-    if (currentCall) {
-        // Отправка сигнала об отклонении
-        sendSignal('call-decline', { recipient_nick: currentCall.from });
-        currentCall = null;
-    }
-    incomingCallModal.style.display = 'none';
-    incomingCallBackdrop.style.display = 'none';
-    endCall();
-  });
-
-  callBtn.addEventListener('click', startCall);
-
-  window.addEventListener('beforeunload', () => {
-    if (isCalling) {
-      sendSignal('call-decline', { recipient_nick: currentCall ? currentCall.from : recipientInput.value.trim() });
-      endCall();
-    }
-    if (ws) {
-        ws.close();
-    }
-  });
-
-})();
-</script>
-
+        // Автозапуск сохранения ника по Enter в поле ника
+        document.getElementById('nickname_input').addEventListener('keydown', (e) => {
+            if (e.key === 'Enter') {
+                saveNickname();
+            }
+        });
+    </script>
 </body>
 </html>
