@@ -3,8 +3,8 @@
 <head>
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
-    <title>[INIT] OMEGA CALL-CHAT</title>
-    <script src="https://cdn.jsdelivr.net/npm/simple-peer@9.11.1/simplepeer.min.js"></script>
+    <title>[INIT] OMEGA CONFERENCE v1.0.3</title>
+    <script src="https://cdn.jsdelivr.net/npm/simple-peer@9.11.1/simplepeer.min.js"></script> 
     <style>
         /* [HACKER_STYLE] */
         body {
@@ -17,21 +17,55 @@
             flex-direction: column;
             min-height: 100vh;
         }
-        .chat-container {
-            max-width: 1000px;
+        .main-grid {
+            max-width: 1200px;
             margin: 0 auto;
             width: 100%;
             border: 2px solid #00FF00;
             box-shadow: 0 0 15px #00FF00;
             padding: 10px;
+            display: grid;
+            grid-template-columns: 2fr 1fr;
+            gap: 10px;
+        }
+        
+        .video-grid {
             display: flex;
+            flex-wrap: wrap;
+            gap: 10px;
+            min-height: 250px;
+            border: 1px solid #FF00FF;
+            padding: 5px;
         }
-        .left-panel, .right-panel {
-            flex: 1;
-            padding: 10px;
+        
+        .video-wrapper {
+            position: relative;
+            width: 48%; /* 2 колонки */
+            min-width: 200px;
+            background-color: #111;
+            border: 2px solid #FF00FF;
+            box-sizing: border-box;
         }
-        .left-panel { border-right: 1px dashed #00AA00; }
-
+        
+        .video-wrapper video {
+            width: 100%;
+            height: auto;
+            display: block;
+        }
+        
+        .video-label {
+            position: absolute;
+            bottom: 0;
+            left: 0;
+            background-color: rgba(0, 0, 0, 0.7);
+            color: #00FF00;
+            padding: 2px 5px;
+            font-size: 0.8em;
+            width: 100%;
+            box-sizing: border-box;
+            text-align: center;
+        }
+        
         .chat-box {
             height: 40vh; 
             overflow-y: scroll;
@@ -39,79 +73,50 @@
             padding: 5px;
             border: 1px solid #006600;
         }
-        .chat-box p { margin: 0 0 5px 0; }
+        /* Остальные стили из предыдущей версии (кнопки, инпуты) */
         .system-message { color: #FFFF00; font-weight: bold; }
         .user-message strong { color: #00AAFF; margin-right: 5px; }
-
-        /* Стили для звонков */
-        .call-controls, .user-list {
-            margin-top: 10px;
-            padding: 10px;
-            border: 1px solid #FF00FF;
-            color: #FF00FF;
-        }
-        .user-list button {
-            background-color: #005500;
-            color: #00FF00;
-            border: 1px solid #00FF00;
-            margin: 5px;
-            padding: 5px;
-            cursor: pointer;
-        }
-        .video-container {
-            display: flex;
-            gap: 10px;
-            margin-top: 10px;
-        }
-        video {
-            width: 50%;
-            max-height: 200px;
-            background-color: black;
-            border: 2px solid #FF00FF;
-        }
+        
         input[type="text"], button {
-             /* Стили из предыдущей версии */
-             background-color: #111111;
+            background-color: #111111;
             color: #00FF00;
             border: 1px solid #00FF00;
             padding: 8px;
             font-family: inherit;
         }
+        
+        .message-input { display: flex; }
+        .message-input input { flex-grow: 1; margin-right: 5px; }
+        
+        #nickname_display, #peer_id_display { margin-bottom: 10px; color: #FF00FF; }
     </style>
 </head>
 <body>
 
-    <div class="chat-container">
+    <div class="main-grid">
         
         <div class="left-panel">
             <p id="nickname_display">STATUS: [PENDING CALLSIGN]</p>
-            <p id="peer_id_display" style="color:#FF00FF;">PEER_ID: [GENERATING...]</p>
+            <p id="peer_id_display">PEER_ID: [GENERATING...]</p>
 
             <div class="form-group" id="nick_form">
                 <input type="text" id="nickname_input" placeholder=">>> ENTER YOUR CALLSIGN" required>
-                <button onclick="saveNickname()">[INIT]</button>
+                <button onclick="saveNickname()">[INIT_CONFERENCE]</button>
             </div>
             
-            <div class="video-container">
-                <video id="localVideo" autoplay muted></video>
-                <video id="remoteVideo" autoplay></video>
-            </div>
+            <div class="video-grid" id="video_grid">
+                </div>
 
             <div class="call-controls">
-                <h3>[CALL_PROTOCOL]</h3>
-                <button id="callButton" disabled onclick="initiateCall()">[CALL_INIT]</button>
-                <button id="hangupButton" disabled onclick="hangUp()">[TERMINATE_CALL]</button>
+                <h3>[CONFERENCE_CONTROLS]</h3>
+                <button id="hangupButton" disabled onclick="hangUp()">[TERMINATE_ALL]</button>
                 <button id="audioToggle" disabled onclick="toggleAudio()">[MUTE_AUDIO]</button>
                 <button id="videoToggle" disabled onclick="toggleVideo()">[DISABLE_VIDEO]</button>
             </div>
         </div>
 
         <div class="right-panel">
-            <h3>[ACTIVE_USERS]</h3>
-            <div class="user-list" id="user_list">
-                </div>
-            
-            <h3>[CHAT_LOG]</h3>
+            <h3>[GLOBAL_CHAT_LOG]</h3>
             <div class="chat-box" id="chat_box">
                 </div>
 
@@ -125,10 +130,13 @@
     <script>
         // ГЛОБАЛЬНЫЕ ПЕРЕМЕННЫЕ
         let ws;
-        let peer; // Объект simple-peer для WebRTC
-        let peerId; // Локальный Peer ID
-        let localStream;
+        let peerId; 
         let nickname;
+        let localStream;
+        // КАРТА ДЛЯ ХРАНЕНИЯ СОЕДИНЕНИЙ: { peerId: simple-peer_instance }
+        const peers = new Map();
+        // КАРТА ДЛЯ ХРАНЕНИЯ ИНФОРМАЦИИ О ПОЛЬЗОВАТЕЛЯХ: { peerId: { id, nickname } }
+        let allUsers = new Map();
 
         // ЭЛЕМЕНТЫ DOM
         const chatBox = document.getElementById('chat_box');
@@ -138,29 +146,27 @@
         const setNickButton = document.getElementById('nick_form').querySelector('button');
         const nicknameDisplay = document.getElementById('nickname_display');
         const peerIdDisplay = document.getElementById('peer_id_display');
-        const userListDiv = document.getElementById('user_list');
-        const localVideo = document.getElementById('localVideo');
-        const remoteVideo = document.getElementById('remoteVideo');
+        const videoGrid = document.getElementById('video_grid');
         const hangupButton = document.getElementById('hangupButton');
         const audioToggle = document.getElementById('audioToggle');
         const videoToggle = document.getElementById('videoToggle');
 
-        // ГЕНЕРАЦИЯ УНИКАЛЬНОГО ID ДЛЯ WEBRTC
-        peerId = 'P' + Math.random().toString(36).substring(2, 9).toUpperCase();
+        // [INIT] ГЕНЕРАЦИЯ УНИКАЛЬНОГО ID И WEB SOCKET
+        peerId = 'PEER_' + Math.random().toString(36).substring(2, 9).toUpperCase();
         peerIdDisplay.textContent = `PEER_ID: [${peerId}]`;
-
-
-        // [WS_INIT] Инициализация WebSocket
+        
         function initWebSocket() {
             const protocol = window.location.protocol === 'https:' ? 'wss:' : 'ws:';
             ws = new WebSocket(`${protocol}//${window.location.host}`);
 
             ws.onopen = function() {
-                // Если ник уже есть, регистрируем Peer ID
-                if (nickname) {
-                    registerPeer();
+                // Если ник уже есть, сразу регистрируем Peer ID и запускаем медиа
+                const savedNick = localStorage.getItem('nickname');
+                if (savedNick) {
+                    nicknameInput.value = savedNick;
+                    saveNickname(true); // Автозапуск
                 } else {
-                    nicknameInput.focus();
+                    displayMessage({ type: 'SYSTEM', message: 'ENTER_CALLSIGN_TO_INITIATE_CONFERENCE.' });
                 }
             };
 
@@ -169,19 +175,73 @@
                     const data = JSON.parse(event.data);
                     handleIncomingMessage(data);
                 } catch (e) {
-                    displayMessage({ sender: 'ERROR', message: 'INCOMING DATA CORRUPTED.' });
+                    displayMessage({ type: 'ERROR', message: 'INCOMING DATA CORRUPTED.' });
                 }
             };
-
+            
             ws.onclose = function() {
-                displayMessage({ sender: 'SYSTEM', message: 'CONNECTION_LOST. RESTARTING PROTOCOLS...' });
+                displayMessage({ type: 'SYSTEM', message: 'CONNECTION_LOST. RESTARTING PROTOCOLS...' });
                 messageInput.disabled = true;
                 sendButton.disabled = true;
-                if(peer) peer.destroy();
+                hangUp(false); // Не пытаемся переподключиться
             };
         }
 
-        // [WEBRTC_SIGNALING] Обработка входящих WS-сообщений
+        // [NICKNAME_HANDLER] Сохранение ника, запуск медиа и регистрация
+        async function saveNickname(auto = false) {
+            const nick = nicknameInput.value.trim().toUpperCase();
+
+            if (nick.length < 2) {
+                if (!auto) alert("NICKNAME_ERROR: TOO SHORT (MIN 2 CHARACTERS)");
+                return;
+            }
+
+            nickname = nick;
+            localStorage.setItem('nickname', nickname);
+            nicknameDisplay.innerHTML = `STATUS: [CALLSIGN SET AS: ${nickname}]`;
+            
+            // 1. Активация контролов
+            messageInput.disabled = false;
+            sendButton.disabled = false;
+            nicknameInput.disabled = true;
+            setNickButton.disabled = true;
+            messageInput.focus();
+            
+            // 2. Получение локального потока и добавление его в DOM
+            try {
+                await initLocalMedia();
+            } catch (e) {
+                displayMessage({ type: 'ERROR', message: `MEDIA_INIT_FAIL: ${e.message}. VOICE/VIDEO DISABLED.` });
+            }
+            
+            // 3. Регистрация в глобальном чате
+            if (ws.readyState === WebSocket.OPEN) {
+                 ws.send(JSON.stringify({
+                    type: 'REGISTER',
+                    peerId: peerId,
+                    sender: nickname
+                }));
+            }
+        }
+        
+        // [MEDIA] Инициализация локального потока
+        async function initLocalMedia() {
+            localStream = await navigator.mediaDevices.getUserMedia({ video: true, audio: true });
+            
+            // Создание элемента для локального видео
+            const localWrapper = createVideoWrapper(peerId, nickname + ' (LOCAL)');
+            const localVideo = localWrapper.querySelector('video');
+            localVideo.muted = true; // Отключаем звук для своего видео
+            localVideo.srcObject = localStream;
+            videoGrid.appendChild(localWrapper);
+            
+            // Активация контролов
+            hangupButton.disabled = false;
+            audioToggle.disabled = false;
+            videoToggle.disabled = false;
+        }
+
+        // [WS_RECEIVE] Обработка входящих WS-сообщений
         function handleIncomingMessage(data) {
             switch (data.type) {
                 case 'SYSTEM':
@@ -190,73 +250,176 @@
                     break;
                 case 'USER_LIST_UPDATE':
                     updateUserList(data.users);
-                    displayMessage({ sender: 'SYSTEM', message: `NEW_USER_JOINED: ${data.newUser}` });
                     break;
                 case 'USER_LEFT':
-                    displayMessage({ sender: 'SYSTEM', message: `USER_LEFT: ${data.leftId}` });
-                    // Обновление списка
-                    if (ws.readyState === WebSocket.OPEN && nickname) {
-                       registerPeer(); // Перерегистрация для получения нового списка
-                    }
+                    removePeer(data.leftId);
+                    displayMessage({ type: 'SYSTEM', message: `USER_LEFT: ${data.leftId}` });
                     break;
                 case 'WEBRTC_SIGNAL':
-                    // Получили сигнал для WebRTC
-                    if (peer) {
-                        peer.signal(data.signal);
-                    } else if (data.signal.type === 'offer') {
-                        // Если нет peer, но пришел offer - это входящий звонок
-                        handleIncomingCall(data.signal, data.senderId);
-                    }
+                    // Сигнал предназначен для peerId, который его должен обработать (либо инициатор, либо ответчик)
+                    handleSignal(data.senderId, data.signal);
                     break;
             }
         }
-        
-        // [NICKNAME_HANDLER] Сохранение ника и регистрация Peer
-        function saveNickname() {
-            const nick = nicknameInput.value.trim().toUpperCase();
 
-            if (nick.length < 2) {
-                alert("NICKNAME_ERROR: TOO SHORT (MIN 2 CHARACTERS)");
+        // [USER_LIST] Обновление списка активных пользователей и синхронизация P2P
+        function updateUserList(users) {
+            const newUsersMap = new Map();
+            users.forEach(u => newUsersMap.set(u.id, u));
+            
+            // 1. Обработка пользователей, которые ушли
+            for (const id of allUsers.keys()) {
+                if (!newUsersMap.has(id) && id !== peerId) {
+                    removePeer(id);
+                }
+            }
+            
+            // 2. Обработка новых пользователей
+            for (const [id, user] of newUsersMap.entries()) {
+                // Если это не мы сами, и это новый пользователь, и у нас нет соединения с ним
+                if (id !== peerId && !peers.has(id)) {
+                    // Создаем новое P2P соединение (мы будем инициатором, если наш ID < их ID)
+                    const initiator = peerId < id; 
+                    if (localStream) {
+                        createPeer(id, user.nickname, initiator);
+                    } else {
+                        // Если медиа не запущено, мы не можем начать соединение (только слушать)
+                        displayMessage({ type: 'WARNING', message: `Cannot initiate P2P with ${id}. Local media not running.` });
+                    }
+                }
+            }
+            
+            allUsers = newUsersMap;
+        }
+
+        // [PEER_MANAGER] Создание нового P2P соединения
+        function createPeer(targetId, targetNickname, initiator) {
+            // Если соединение уже есть, игнорируем
+            if (peers.has(targetId)) return;
+
+            displayMessage({ 
+                type: 'SYSTEM', 
+                message: `P2P_INIT: ${targetNickname} (${targetId}). Initiator: ${initiator}` 
+            });
+
+            // Создание SimplePeer
+            const newPeer = new SimplePeer({
+                initiator: initiator,
+                trickle: true, // Использование trickle ICE для более быстрого соединения
+                stream: localStream
+            });
+
+            // Сохранение в карте
+            peers.set(targetId, newPeer);
+
+            // Настройка событий
+            newPeer.on('signal', data => {
+                // Отправка сигнальных данных (Offer, Answer, ICE) на сервер
+                if (ws.readyState === WebSocket.OPEN) {
+                    ws.send(JSON.stringify({
+                        type: 'WEBRTC_SIGNAL',
+                        senderId: peerId,
+                        targetId: targetId,
+                        signal: data
+                    }));
+                }
+            });
+
+            newPeer.on('stream', stream => {
+                // Прием удаленного потока
+                addRemoteStream(targetId, targetNickname, stream);
+            });
+
+            newPeer.on('connect', () => {
+                displayMessage({ 
+                    type: 'SYSTEM', 
+                    message: `P2P_CONNECTED_WITH: ${targetNickname}` 
+                });
+            });
+
+            newPeer.on('close', () => {
+                displayMessage({ 
+                    type: 'SYSTEM', 
+                    message: `P2P_CLOSED_WITH: ${targetNickname}` 
+                });
+                removePeer(targetId, true);
+            });
+
+            newPeer.on('error', (err) => {
+                console.error(`P2P Error with ${targetId}:`, err);
+                displayMessage({ 
+                    type: 'ERROR', 
+                    message: `P2P_ERROR_WITH: ${targetNickname} (${err.code})` 
+                });
+                removePeer(targetId, true);
+            });
+        }
+        
+        // [PEER_MANAGER] Обработка входящего сигнала
+        function handleSignal(senderId, signal) {
+            // Если сигнал пришел от нас самих (loopback), игнорируем
+            if (senderId === peerId) return;
+
+            // Если peer с отправителем уже существует, передаем сигнал
+            if (peers.has(senderId)) {
+                peers.get(senderId).signal(signal);
                 return;
             }
 
-            nickname = nick;
-            localStorage.setItem('nickname', nickname);
-            nicknameDisplay.innerHTML = `STATUS: [CALLSIGN SET AS: ${nickname}]`;
-            
-            messageInput.disabled = false;
-            sendButton.disabled = false;
-            nicknameInput.disabled = true;
-            setNickButton.disabled = true;
-            messageInput.focus();
-            
-            displayMessage({ sender: 'SYSTEM', message: `PROTOCOL_INITIATED_AS_${nickname}` });
-            
-            registerPeer();
-        }
-
-        // [PEER_REGISTRATION] Отправка Peer ID на сервер
-        function registerPeer() {
-            if (ws.readyState === WebSocket.OPEN && nickname && peerId) {
-                 ws.send(JSON.stringify({
-                    type: 'REGISTER',
-                    peerId: peerId,
-                    sender: nickname
-                }));
+            // Если peer не существует, но пришел 'offer' или 'signal' - создаем новый peer (не инициатор)
+            if (signal.type === 'offer' || !signal.type) { // signal.type может быть undefined для ICE
+                const senderInfo = allUsers.get(senderId);
+                const senderNickname = senderInfo ? senderInfo.nickname : 'UNKNOWN';
+                
+                // Создаем peer
+                if (localStream) {
+                    createPeer(senderId, senderNickname, false);
+                    peers.get(senderId).signal(signal);
+                } else {
+                     displayMessage({ type: 'WARNING', message: `Dropping incoming P2P signal from ${senderId}. Local media not ready.` });
+                }
             }
         }
 
-        // [USER_LIST] Обновление списка активных пользователей
-        function updateUserList(users) {
-            userListDiv.innerHTML = '';
-            users.forEach(id => {
-                if (id !== peerId) {
-                    const button = document.createElement('button');
-                    button.textContent = `[CALL] ${id}`;
-                    button.onclick = () => initiateCall(id);
-                    userListDiv.appendChild(button);
-                }
-            });
+        // [PEER_MANAGER] Удаление P2P соединения и DOM-элемента
+        function removePeer(targetId, destroy = false) {
+            const remoteWrapper = document.getElementById(`video-${targetId}`);
+            if (remoteWrapper) {
+                remoteWrapper.remove();
+            }
+            if (peers.has(targetId)) {
+                if (destroy) peers.get(targetId).destroy();
+                peers.delete(targetId);
+            }
+        }
+        
+        // [DOM_MANIPULATION] Добавление удаленного стрима в DOM
+        function addRemoteStream(id, nickname, stream) {
+            let wrapper = document.getElementById(`video-${id}`);
+            if (!wrapper) {
+                wrapper = createVideoWrapper(id, nickname);
+                videoGrid.appendChild(wrapper);
+            }
+            wrapper.querySelector('video').srcObject = stream;
+        }
+        
+        // [DOM_MANIPULATION] Создание обертки для видео
+        function createVideoWrapper(id, label) {
+            const wrapper = document.createElement('div');
+            wrapper.className = 'video-wrapper';
+            wrapper.id = `video-${id}`;
+            
+            const video = document.createElement('video');
+            video.autoplay = true;
+            // video.muted = (id === peerId); // Только локальное видео должно быть muted
+            
+            const labelEl = document.createElement('div');
+            labelEl.className = 'video-label';
+            labelEl.textContent = `[CALLSIGN] ${label}`;
+            
+            wrapper.appendChild(video);
+            wrapper.appendChild(labelEl);
+            return wrapper;
         }
 
         // [CHAT] Отправка сообщения
@@ -275,12 +438,11 @@
         }
 
         function displayMessage(data) {
-            // ... (логика отображения сообщений, как в предыдущей версии)
             const messageElement = document.createElement('p');
             
-            if (data.sender === 'SYSTEM' || data.sender === 'ERROR') {
+            if (data.type === 'SYSTEM' || data.type === 'ERROR' || data.type === 'WARNING') {
                 messageElement.className = 'system-message';
-                messageElement.innerHTML = `[${data.sender}] ${data.message}`;
+                messageElement.innerHTML = `[${data.type}] ${data.message}`;
             } else {
                 messageElement.className = 'user-message';
                 messageElement.innerHTML = `<strong>[${data.sender}]</strong> > ${data.message}`;
@@ -290,117 +452,27 @@
             chatBox.scrollTop = chatBox.scrollHeight;
         }
 
-        // --- WEBRTC ЛОГИКА ---
-
-        // [MEDIA] Получение локального потока
-        async function getLocalStream() {
-            try {
-                localStream = await navigator.mediaDevices.getUserMedia({ video: true, audio: true });
-                localVideo.srcObject = localStream;
-                
-                // Активация контролов
-                hangupButton.disabled = false;
-                audioToggle.disabled = false;
-                videoToggle.disabled = false;
-                return localStream;
-            } catch (err) {
-                displayMessage({ sender: 'ERROR', message: `MEDIA_ACCESS_DENIED: ${err.message}` });
-                throw err;
-            }
-        }
-        
-        // [CALL_OUT] Инициирование исходящего звонка
-        async function initiateCall(targetId) {
-            displayMessage({ sender: 'SYSTEM', message: `INITIATING_CALL_TO: ${targetId}` });
-            
-            try {
-                await getLocalStream();
-                
-                // Создание Peer (initiator: true - отправляем offer)
-                peer = new SimplePeer({
-                    initiator: true,
-                    trickle: false, // Отправляем сигнал один раз
-                    stream: localStream
-                });
-                
-                setupPeerEvents(targetId);
-
-            } catch (error) {
-                console.error("Call initiation failed:", error);
-                displayMessage({ sender: 'ERROR', message: `CALL_INIT_FAIL: ${error.message}` });
-            }
-        }
-        
-        // [CALL_IN] Обработка входящего звонка (получили offer)
-        async function handleIncomingCall(offer, senderId) {
-            displayMessage({ sender: 'SYSTEM', message: `INCOMING_CALL_FROM: ${senderId}. Accepting...` });
-            
-            try {
-                await getLocalStream();
-
-                // Создание Peer (initiator: false - отвечаем answer)
-                peer = new SimplePeer({
-                    initiator: false,
-                    trickle: false,
-                    stream: localStream
-                });
-                
-                setupPeerEvents(senderId);
-                
-                // Обработка полученного offer
-                peer.signal(offer);
-                
-            } catch (error) {
-                console.error("Incoming call failed:", error);
-                displayMessage({ sender: 'ERROR', message: `INCOMING_CALL_FAIL: ${error.message}` });
-                hangUp();
-            }
-        }
-
-        // [PEER_EVENTS] Настройка обработчиков для SimplePeer
-        function setupPeerEvents(targetId) {
-            // Отправка сигнальных данных (Offer, Answer, ICE) через WS-сервер
-            peer.on('signal', data => {
-                ws.send(JSON.stringify({
-                    type: 'WEBRTC_SIGNAL',
-                    senderId: peerId,
-                    targetId: targetId,
-                    signal: data
-                }));
-            });
-
-            // Прием удаленного потока
-            peer.on('stream', stream => {
-                remoteVideo.srcObject = stream;
-                displayMessage({ sender: 'SYSTEM', message: 'STREAM_CONNECTED. CALL_ESTABLISHED.' });
-            });
-
-            // Закрытие соединения
-            peer.on('close', () => {
-                displayMessage({ sender: 'SYSTEM', message: 'PEER_CONNECTION_CLOSED.' });
-                hangUp();
-            });
-
-            // Ошибки
-            peer.on('error', (err) => {
-                console.error('Peer error:', err);
-                displayMessage({ sender: 'ERROR', message: `PEER_ERROR: ${err.code}` });
-                hangUp();
-            });
-        }
-        
-        // [HANGUP] Завершение звонка
-        function hangUp() {
-            if (peer) {
+        // [HANGUP] Завершение всех соединений
+        function hangUp(do_disconnect = true) {
+            // Уничтожение всех P2P соединений
+            for (const peer of peers.values()) {
                 peer.destroy();
-                peer = null;
             }
+            peers.clear();
+            
+            // Остановка локального потока
             if (localStream) {
                 localStream.getTracks().forEach(track => track.stop());
                 localStream = null;
-                localVideo.srcObject = null;
             }
-            remoteVideo.srcObject = null;
+            
+            // Очистка DOM
+            videoGrid.innerHTML = ''; 
+            
+            // Если нужно закрыть WS
+            if (do_disconnect && ws.readyState === WebSocket.OPEN) {
+                ws.close();
+            }
             
             // Деактивация контролов
             hangupButton.disabled = true;
@@ -408,7 +480,7 @@
             videoToggle.disabled = true;
             audioToggle.textContent = '[MUTE_AUDIO]';
             videoToggle.textContent = '[DISABLE_VIDEO]';
-            displayMessage({ sender: 'SYSTEM', message: 'CALL_TERMINATED.' });
+            displayMessage({ type: 'SYSTEM', message: 'ALL_PROTOCOLS_TERMINATED.' });
         }
         
         // [CONTROLS] Переключение аудио
@@ -418,7 +490,7 @@
             if (audioTrack) {
                 audioTrack.enabled = !audioTrack.enabled;
                 audioToggle.textContent = audioTrack.enabled ? '[MUTE_AUDIO]' : '[UNMUTE_AUDIO]';
-                displayMessage({ sender: 'SYSTEM', message: audioTrack.enabled ? 'AUDIO_UNMUTED' : 'AUDIO_MUTED' });
+                displayMessage({ type: 'SYSTEM', message: audioTrack.enabled ? 'AUDIO_UNMUTED_TO_ALL' : 'AUDIO_MUTED_TO_ALL' });
             }
         }
 
@@ -429,7 +501,7 @@
             if (videoTrack) {
                 videoTrack.enabled = !videoTrack.enabled;
                 videoToggle.textContent = videoTrack.enabled ? '[DISABLE_VIDEO]' : '[ENABLE_VIDEO]';
-                displayMessage({ sender: 'SYSTEM', message: videoTrack.enabled ? 'VIDEO_ENABLED' : 'VIDEO_DISABLED' });
+                displayMessage({ type: 'SYSTEM', message: videoTrack.enabled ? 'VIDEO_ENABLED_TO_ALL' : 'VIDEO_DISABLED_TO_ALL' });
             }
         }
 
