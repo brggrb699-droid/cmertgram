@@ -7,13 +7,12 @@ const app = express();
 const server = http.createServer(app);
 
 // Настройка Socket.IO для работы на Render
-// Добавляем CORS, чтобы клиент (index.html) мог подключаться
 const io = new Server(server, {
     cors: {
-        origin: "*", // Разрешаем всем, так как это общедоступный чат
+        origin: "*", 
         methods: ["GET", "POST"]
     },
-    transports: ['websocket', 'polling'] // Указываем транспорт
+    transports: ['websocket', 'polling'] 
 });
 
 const PORT = process.env.PORT || 3000;
@@ -77,10 +76,10 @@ io.on('connection', (socket) => {
         console.log(`Пользователь зарегистрирован: ${cleanNickname}`);
     });
 
-    // 2. Общее сообщение (ИСПРАВЛЕННАЯ ЛОГИКА)
+    // 2. Общее сообщение 
     socket.on('public_message', (encryptedContent) => {
         const sender = users[socket.id];
-        if (!sender) return; // Игнорируем, если пользователь не зарегистрирован
+        if (!sender) return; 
 
         const message = {
             type: 'public',
@@ -89,7 +88,6 @@ io.on('connection', (socket) => {
             timestamp: new Date().toLocaleTimeString('ru-RU', { hour: '2-digit', minute: '2-digit' })
         };
         
-        // Отправляем всем клиентам
         io.emit('public_message', message);
     });
 
@@ -98,12 +96,8 @@ io.on('connection', (socket) => {
         const sender = users[socket.id];
         const recipientSocketId = nicknames[data.recipientNickname];
 
-        if (!sender || !recipientSocketId) {
-             console.log(`Ошибка: Отправитель не найден или получатель "${data.recipientNickname}" не в сети.`);
-             // Можно отправить уведомление только отправителю об ошибке
-             return;
-        }
-        
+        if (!sender) return;
+
         const message = {
             type: 'private',
             sender: sender,
@@ -112,8 +106,20 @@ io.on('connection', (socket) => {
             timestamp: new Date().toLocaleTimeString('ru-RU', { hour: '2-digit', minute: '2-digit' })
         };
         
-        // Отправка получателю
-        io.to(recipientSocketId).emit('private_message', message);
+        // Отправка получателю (если он в сети)
+        if (recipientSocketId) {
+            io.to(recipientSocketId).emit('private_message', message);
+        } else {
+             // Можно отправить системное сообщение отправителю, что пользователь оффлайн
+             const offlineMsg = {
+                type: 'system',
+                sender: 'Система',
+                content: `Пользователь **${data.recipientNickname}** не в сети. Сообщение не доставлено.`,
+                timestamp: new Date().toLocaleTimeString('ru-RU', { hour: '2-digit', minute: '2-digit' })
+             };
+             io.to(socket.id).emit('public_message', offlineMsg);
+        }
+        
         // Отправка обратно отправителю (для отображения своего сообщения)
         io.to(socket.id).emit('private_message', message);
     });
