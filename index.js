@@ -4,66 +4,118 @@ const WebSocket = require('ws');
 const path = require('path');
 
 const app = express();
-// Использование порта, предоставляемого Render, или 3000 по умолчанию
 const PORT = process.env.PORT || 3000;
 
-// Обслуживание статических файлов (index.html, CSS) из папки, где лежит index.js
+// Хранение клиентов по их PeerID для WebRTC
+const clients = new Map(); 
+
 app.use(express.static(path.join(__dirname, '')));
-
-// Создание HTTP-сервера
 const server = http.createServer(app);
-
-// Создание WebSocket-сервера, привязанного к HTTP-серверу
 const wss = new WebSocket.Server({ server });
 
-// [STEALTH_GHOST] Главный обработчик WebSocket-соединений
-wss.on('connection', function connection(ws, req) {
-    // 1. Новое подключение
-    console.log(`[STEALTH_GHOST] New connection established.`);
+// [CORE_LOGIC] ОБРАБОТКА ПОДКЛЮЧЕНИЙ
+wss.on('connection', function connection(ws) {
+    console.log(`[SYSTEM] New client connected. Total clients: ${wss.clients.size}`);
     
-    // 2. Обработка входящих сообщений (Broadcast)
+    ws.send(JSON.stringify({
+        type: 'SYSTEM',
+        message: 'CONNECTION_INITIATED. ENTER CALLSIGN AND PEER ID TO CONNECT.'
+    }));
+    
+    // [BROADCAST_PROTOCOL] РАССЫЛКА СООБЩЕНИЙ И СИГНАЛОВ
     ws.on('message', function incoming(message) {
-        console.log('Received: %s', message);
-        
         let data;
         try {
             data = JSON.parse(message);
         } catch (e) {
-            console.error("Invalid JSON format.");
+            console.error("INVALID MESSAGE FORMAT.");
             return;
         }
-
-        // Проверяем наличие отправителя и сообщения
-        if (!data.sender || !data.message) {
-            console.warn("Incomplete data received.");
-            return;
-        }
-
-        // [CORE_LOGIC] ШИРОКОВЕЩАТЕЛЬНАЯ РАССЫЛКА ВСЕМ КЛИЕНТАМ
-        wss.clients.forEach(function each(client) {
-            // Отправляем сообщение только открытым и готовым к приему соединениям
-            if (client.readyState === WebSocket.OPEN) {
-                client.send(JSON.stringify({
-                    sender: data.sender,
-                    message: data.message
-                }));
+        
+        // 1. ОБРАБОТКА РЕГИСТРАЦИИ КЛИЕНТА
+        if (data.type === 'REGISTER') {
+            if (data.peerId && data.sender) {
+                // Регистрируем клиента по его WebSocket
+                clients.set(data.peerId, ws);
+                ws.peerId = data.peerId; // Сохраняем ID на самом WS-объекте для закрытия
+                
+                const users = Array.from(clients.keys());
+                
+                // Оповещаем всех о новом пользователе
+                wss.clients.forEach(client => {
+                    if (client.readyState === WebSocket.OPEN) {
+                        client.send(JSON.stringify({
+                            type: 'USER_LIST_UPDATE',
+                            users: users.filter(id => id !== client.peerId), // Отправляем список всех, кроме самого себя
+                            newUser: data.sender
+                        }));
+                    }
+                });
+                console.log(`[REGISTRY] Client registered: ${data.peerId} (${data.sender})`);
             }
-        });
+            return;
+        }
+        
+        // 2. ОБРАБОТКА ЧАТ-СООБЩЕНИЙ (BROADCAST)
+        if (data.type === 'CHAT_MESSAGE') {
+            if (!data.sender || !data.message) return;
+            
+            const broadcast_data = JSON.stringify({
+                type: 'CHAT_MESSAGE',
+                sender: data.sender,
+                message: data.message
+            });
+            
+            // Отправка сообщения ВСЕМ клиентам
+            wss.clients.forEach(function each(client) {
+                if (client.readyState === WebSocket.OPEN) {
+                    client.send(broadcast_data);
+                }
+            });
+            return;
+        }
+
+        // 3. ОБРАБОТКА СИГНАЛОВ WEBRTC (ЗВОНКИ)
+        if (data.type === 'WEBRTC_SIGNAL') {
+            const targetClient = clients.get(data.targetId);
+            
+            if (targetClient && targetClient.readyState === WebSocket.OPEN) {
+                // Перенаправляем сигнал
+                targetClient.send(JSON.stringify({
+                    type: 'WEBRTC_SIGNAL',
+                    senderId: data.senderId,
+                    signal: data.signal // Offer, Answer, ICE
+                }));
+            } else {
+                console.warn(`[SIGNAL_ERROR] Target client ${data.targetId} not found or not ready.`);
+            }
+            return;
+        }
     });
 
-    // 3. Обработка закрытия соединения
+    // ОБРАБОТКА ЗАКРЫТИЯ СОЕДИНЕНИЯ
     ws.on('close', () => {
-        console.log('[STEALTH_GHOST] Connection closed.');
+        let closedPeerId = ws.peerId;
+        if (closedPeerId) {
+            clients.delete(closedPeerId);
+            
+            // Оповещение всех об удалении клиента (если была регистрация)
+            wss.clients.forEach(client => {
+                if (client.readyState === WebSocket.OPEN && client.peerId) {
+                    client.send(JSON.stringify({
+                        type: 'USER_LEFT',
+                        leftId: closedPeerId
+                    }));
+                }
+            });
+            console.log(`[SYSTEM] Client disconnected. Peer ID removed: ${closedPeerId}`);
+        } else {
+            console.log('[SYSTEM] Client disconnected (unregistered).');
+        }
     });
-
-    // 4. Отправка приветственного сообщения (опционально)
-    ws.send(JSON.stringify({
-        sender: 'SYSTEM',
-        message: 'CONNECTION_INITIATED. ENTER NICKNAME TO JOIN THE MATRIX.'
-    }));
 });
 
-// [BOOT_SEQUENCE] Запуск HTTP-сервера
+// ЗАПУСК НА ПОРТУ
 server.listen(PORT, () => {
     console.log(`[STEALTH_GHOST] Server is LIVE on port ${PORT}`);
 });
