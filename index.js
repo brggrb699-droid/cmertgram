@@ -34,20 +34,59 @@ app.get('/', (req, res) => {
 io.on('connection', (socket) => {
     console.log('Новое соединение:', socket.id);
 
-    // ... (Ваша существующая логика register, public_message, private_message) ...
+    // 1. Регистрация
+    socket.on('register', (nickname) => {
+        const cleanNickname = nickname.trim().substring(0, 15);
+        
+        if (!cleanNickname || cleanNickname === 'Система' || nicknames[cleanNickname]) {
+            socket.emit('registration_error', `Никнейм "${cleanNickname}" уже занят или недопустим.`);
+            return;
+        }
+
+        // Успешная регистрация
+        users[socket.id] = cleanNickname;
+        nicknames[cleanNickname] = socket.id;
+        
+        socket.emit('registration_success', cleanNickname); 
+        
+        sendSystemMessage(`Пользователь **${cleanNickname}** присоединился.`);
+        broadcastUserList();
+        console.log(`Пользователь зарегистрирован: ${cleanNickname}`);
+    });
+
+    // 2. Общее сообщение
+    socket.on('public_message', (msg) => {
+        const sender = users[socket.id];
+        if (!sender) return; 
+        msg.sender = sender;
+        io.emit('public_message', msg);
+    });
+
+    // 3. Личное сообщение
+    socket.on('private_message', (msg) => {
+        const sender = users[socket.id];
+        const recipientSocketId = nicknames[msg.recipient];
+        if (!sender || !recipientSocketId) return;
+
+        msg.sender = sender;
+        
+        // Отправка получателю
+        io.to(recipientSocketId).emit('private_message', msg);
+        // Отправка обратно отправителю (для отображения своего сообщения)
+        io.to(socket.id).emit('private_message', msg);
+    });
     
     // ------------------------------------
-    // НОВЫЕ ОБРАБОТЧИКИ СИГНАЛИЗАЦИИ WEBRTC
+    // ОБРАБОТЧИКИ СИГНАЛИЗАЦИИ WEBRTC
     // ------------------------------------
 
-    // 1. Обработка Offer (начало звонка)
+    // 4. Обработка Offer (начало звонка)
     socket.on('webrtc_offer', (data) => {
         const caller = users[socket.id];
         const recipientSocketId = nicknames[data.target];
 
         if (recipientSocketId) {
             console.log(`WebRTC Offer от ${caller} к ${data.target}`);
-            // Отправляем Offer получателю
             io.to(recipientSocketId).emit('incoming_call', {
                 callerNickname: caller,
                 offerSdp: data.sdp,
@@ -55,14 +94,13 @@ io.on('connection', (socket) => {
         }
     });
 
-    // 2. Обработка Answer (ответ на звонок)
+    // 5. Обработка Answer (ответ на звонок)
     socket.on('webrtc_answer', (data) => {
         const caller = users[socket.id]; // Ответчик
         const recipientSocketId = nicknames[data.target]; // Инициатор
 
         if (recipientSocketId) {
             console.log(`WebRTC Answer от ${caller} к ${data.target}`);
-            // Отправляем Answer инициатору
             io.to(recipientSocketId).emit('webrtc_answer', {
                 answerSdp: data.sdp,
                 partner: caller,
@@ -70,36 +108,41 @@ io.on('connection', (socket) => {
         }
     });
 
-    // 3. Обработка ICE-кандидатов
+    // 6. Обработка ICE-кандидатов
     socket.on('webrtc_ice', (data) => {
-        const caller = users[socket.id];
         const recipientSocketId = nicknames[data.target];
-
         if (recipientSocketId) {
-            // Отправляем ICE-кандидат партнеру
             io.to(recipientSocketId).emit('webrtc_ice', {
                 candidate: data.candidate,
             });
         }
     });
 
-    // 4. Завершение звонка
+    // 7. Завершение звонка
     socket.on('call_end', (partnerNickname) => {
         const user = users[socket.id];
         const partnerSocketId = nicknames[partnerNickname];
         
         if (partnerSocketId) {
             console.log(`Звонок завершен между ${user} и ${partnerNickname}`);
-            // Уведомляем партнера о завершении
             io.to(partnerSocketId).emit('call_ended', user);
         }
     });
 
-    // ... (Ваша существующая логика disconnect) ...
+    // 8. Отключение
+    socket.on('disconnect', () => {
+        const disconnectedUser = users[socket.id];
+        if (disconnectedUser) {
+            delete nicknames[disconnectedUser];
+            delete users[socket.id];
 
+            sendSystemMessage(`Пользователь **${disconnectedUser}** покинул чат.`);
+            broadcastUserList();
+            console.log(`Пользователь отключился: ${disconnectedUser}`);
+        }
+    });
 });
 
-// Запуск сервера
 server.listen(PORT, () => {
     console.log(`Сервер WebRTC-сигнализации запущен на порту ${PORT}`);
 });
