@@ -1,161 +1,132 @@
-const WebSocket = require('ws');
+// index.js (Сервер)
+
 const http = require('http');
+const express = require('express');
+const { Server } = require('socket.io');
 const path = require('path');
 const fs = require('fs');
 
-// --- КОНФИГУРАЦИЯ СЕРВЕРА ---
-const PORT = 8080; 
+const app = express();
+const server = http.createServer(app);
+const io = new Server(server);
 
-// Карта для хранения активных клиентов: Nickname -> WebSocket
-const clients = new Map();
-// Карта для хранения WebSocket -> Nickname
-const wsToNickname = new Map();
+const PORT = 3000;
 
-// --- HTTP SERVER (Для обслуживания index.html) ---
-const server = http.createServer((req, res) => {
-    // В простейшем случае, обслуживаем только index.html
-    if (req.url === '/' || req.url === '/index.html') {
-        const filePath = path.join(__dirname, 'index.html');
-        fs.readFile(filePath, (err, content) => {
-            if (err) {
-                res.writeHead(500, { 'Content-Type': 'text/plain' });
-                res.end('500 Internal Error');
-                return;
-            }
-            res.writeHead(200, { 'Content-Type': 'text/html' });
-            res.end(content);
-        });
-    } else {
-        res.writeHead(404);
-        res.end();
-    }
-});
+// Хранилище пользователей: { socketId: nickname }
+const users = {}; 
 
-// --- WEBSOCKET SERVER (Для сигнализации и чата) ---
-const wss = new WebSocket.Server({ server });
+// --- Маршрутизация HTTP ---
 
-/**
- * Отправляет список активных пользователей всем клиентам.
- */
-function broadcastUserList() {
-    const activeUsers = Array.from(clients.keys());
-    const message = JSON.stringify({
-        type: 'user_list',
-        users: activeUsers
+// Отдаем index.html при обращении к корню
+const htmlPath = path.join(__dirname, 'index.html');
+if (fs.existsSync(htmlPath)) {
+    app.get('/', (req, res) => {
+        res.sendFile(htmlPath);
     });
-    clients.forEach(ws => {
-        if (ws.readyState === WebSocket.OPEN) {
-            ws.send(message);
-        }
+} else {
+    // Если index.html не найден, отправляем сообщение об ошибке
+    app.get('/', (req, res) => {
+        res.send('<h1>Ошибка: index.html не найден.</h1><p>Пожалуйста, убедитесь, что index.html находится в той же папке, что и index.js</p>');
     });
 }
 
-/**
- * Отправляет сообщение конкретному пользователю по Nickname.
- * @param {string} toNick - Ник получателя.
- * @param {object} messageObject - Объект сообщения.
- */
-function sendTo(toNick, messageObject) {
-    const ws = clients.get(toNick);
-    if (ws && ws.readyState === WebSocket.OPEN) {
-        ws.send(JSON.stringify(messageObject));
-        return true;
-    }
-    return false;
-}
 
-wss.on('connection', (ws) => {
-    console.log(`[WS] Новое соединение установлено.`);
-    let currentNickname = null;
+// --- Обработка Socket.io ---
 
-    ws.on('message', (message) => {
-        let data;
-        try {
-            data = JSON.parse(message);
-        } catch (e) {
-            console.error("[WS] Ошибка парсинга JSON:", message);
+io.on('connection', (socket) => {
+    console.log(`Пользователь подключился: ${socket.id}`);
+
+    // [1] Регистрация/Вход
+    socket.on('register', (nickname) => {
+        // Проверяем, свободен ли никнейм
+        const isNicknameTaken = Object.values(users).includes(nickname);
+        if (isNicknameTaken) {
+            socket.emit('registration_error', `Никнейм "${nickname}" уже занят.`);
             return;
         }
 
-        // 1. Обработка ВХОДА
-        if (data.type === 'join' && data.nickname) {
-            const newNick = data.nickname;
-            if (clients.has(newNick)) {
-                // Отклонить, если ник уже занят
-                ws.send(JSON.stringify({ type: 'error', message: `Ник "${newNick}" уже занят.` }));
-                ws.close();
-                return;
-            }
-            
-            // Регистрируем клиента
-            currentNickname = newNick;
-            clients.set(currentNickname, ws);
-            wsToNickname.set(ws, currentNickname);
-            
-            console.log(`[JOIN] Пользователь "${currentNickname}" подключен.`);
-            broadcastUserList();
+        users[socket.id] = nickname;
+        console.log(`Пользователь зарегистрирован: ${nickname} (${socket.id})`);
+        socket.emit('registration_success', nickname);
 
-        // 2. ОБЩИЙ ЧАТ (через сервер)
-        } else if (data.type === 'message' && currentNickname) {
-            const messageObject = {
-                type: 'message',
-                from: currentNickname,
-                text: data.text
+        // Обновление списка пользователей для всех
+        io.emit('user_list', Object.values(users));
+
+        // Уведомление о входе в общий чат
+        io.emit('public_message', { 
+            type: 'system', 
+            sender: 'Система', 
+            content: `**${nickname}** присоединился(ась) к чату.` 
+        });
+    });
+
+    // [2] Общее сообщение
+    socket.on('public_message', (encryptedContent) => {
+        const sender = users[socket.id] || 'Неизвестный';
+        const message = {
+            type: 'public',
+            sender: sender,
+            content: encryptedContent, // Отправляем зашифрованное содержимое
+            timestamp: new Date().toLocaleTimeString('ru-RU', { hour: '2-digit', minute: '2-digit' })
+        };
+        // Отправляем всем, включая отправителя
+        io.emit('public_message', message); 
+    });
+
+    // [3] Приватное сообщение
+    socket.on('private_message', (data) => {
+        const senderNickname = users[socket.id];
+        const { recipientNickname, encryptedContent } = data;
+        
+        // Находим socketId получателя по никнейму
+        const recipientSocketId = Object.keys(users).find(key => users[key] === recipientNickname);
+
+        if (recipientSocketId) {
+            const message = {
+                type: 'private',
+                sender: senderNickname,
+                content: encryptedContent, // Отправляем зашифрованное содержимое
+                timestamp: new Date().toLocaleTimeString('ru-RU', { hour: '2-digit', minute: '2-digit' })
             };
             
-            // Рассылаем всем, кроме отправителя
-            clients.forEach((clientWs, nick) => {
-                if (nick !== currentNickname && clientWs.readyState === WebSocket.OPEN) {
-                    clientWs.send(JSON.stringify(messageObject));
-                }
+            // Отправляем получателю
+            io.to(recipientSocketId).emit('private_message', message);
+
+            // Отправляем копию отправителю (для отображения в его чате)
+            socket.emit('private_message', { ...message, recipient: recipientNickname });
+        } else {
+            // Уведомление, если получатель не найден (например, только что вышел)
+            socket.emit('public_message', { 
+                type: 'system', 
+                sender: 'Система', 
+                content: `Пользователь **${recipientNickname}** не найден или не в сети.` 
             });
-
-        // 3. P2P СИГНАЛИЗАЦИЯ (Signal, Offer, Accept, Reject)
-        } else if (['signal', 'call_offer', 'call_accept', 'call_reject'].includes(data.type) && currentNickname && data.to) {
-            const messageObject = {
-                type: data.type,
-                from: currentNickname,
-                signal: data.signal,        // для 'signal'
-                offer: data.offer,          // для 'call_offer'
-                channelType: data.channelType // для 'signal'
-            };
-            
-            if (!sendTo(data.to, messageObject)) {
-                 console.log(`[SIGNALING] Не удалось отправить ${data.type} для ${data.to}.`);
-            }
         }
     });
 
-    ws.on('close', () => {
-        if (currentNickname) {
-            clients.delete(currentNickname);
-            wsToNickname.delete(ws);
-            console.log(`[LEAVE] Пользователь "${currentNickname}" отключен.`);
+    // [4] Отключение
+    socket.on('disconnect', () => {
+        const nickname = users[socket.id];
+        if (nickname) {
+            console.log(`Пользователь отключился: ${nickname} (${socket.id})`);
+            delete users[socket.id];
             
-            // Оповещаем остальных о выходе
-            const leaveMessage = JSON.stringify({
-                type: 'leave',
-                nickname: currentNickname
-            });
-            clients.forEach(clientWs => {
-                if (clientWs.readyState === WebSocket.OPEN) {
-                    clientWs.send(leaveMessage);
-                }
-            });
+            // Обновление списка пользователей для всех
+            io.emit('user_list', Object.values(users));
 
-            broadcastUserList();
+            // Уведомление об отключении
+            io.emit('public_message', { 
+                type: 'system', 
+                sender: 'Система', 
+                content: `**${nickname}** покинул(а) чат.` 
+            });
         }
-    });
-
-    ws.on('error', (error) => {
-        console.error(`[WS Error] от ${currentNickname || 'Неизвестный клиент'}:`, error.message);
     });
 });
 
-// --- ЗАПУСК СЕРВЕРА ---
+// Запуск сервера
 server.listen(PORT, () => {
-    console.log(`\n==============================================`);
-    console.log(`🚀 Сервер P2P Conference запущен!`);
-    console.log(`🔗 Откройте в браузере: http://localhost:${PORT}`);
-    console.log(`==============================================\n`);
+    console.log(`Сервер запущен на http://localhost:${PORT}`);
+    console.log('---');
+    console.log('Не забудьте создать файл index.html в этой же папке!');
 });
