@@ -30,17 +30,14 @@ wss.on('connection', function connection(ws) {
         // 1. ОБРАБОТКА РЕГИСТРАЦИИ КЛИЕНТА (WS -> Peer ID)
         if (data.type === 'REGISTER') {
             if (data.peerId && data.sender) {
-                // Если клиент уже зарегистрирован, удаляем старый
+                // ... (Логика регистрации и рассылки списка пользователей)
                 if (ws.peerId && clients.has(ws.peerId)) {
                     clients.delete(ws.peerId);
                 }
-                
-                // Регистрируем новый Peer ID
                 clients.set(data.peerId, ws);
                 ws.peerId = data.peerId; 
                 ws.nickname = data.sender;
                 
-                // Отправляем всем обновленный список активных пиров (Peer ID, Nickname)
                 const users = Array.from(clients.entries()).map(([id, clientWs]) => ({
                     id: id,
                     nickname: clientWs.nickname
@@ -50,8 +47,6 @@ wss.on('connection', function connection(ws) {
                     if (client.readyState === WebSocket.OPEN) {
                         client.send(JSON.stringify({
                             type: 'USER_LIST_UPDATE',
-                            // Отправляем список всех пользователей, включая отправителя. 
-                            // Клиент сам решит, кого ему инициировать.
                             users: users 
                         }));
                     }
@@ -71,7 +66,6 @@ wss.on('connection', function connection(ws) {
                 message: data.message
             });
             
-            // Отправка сообщения ВСЕМ клиентам
             wss.clients.forEach(function each(client) {
                 if (client.readyState === WebSocket.OPEN) {
                     client.send(broadcast_data);
@@ -82,16 +76,14 @@ wss.on('connection', function connection(ws) {
 
         // 3. ОБРАБОТКА СИГНАЛОВ WEBRTC (MESH BROADCAST)
         if (data.type === 'WEBRTC_SIGNAL') {
-            // Перенаправляем сигнал ВСЕМ, кроме отправителя
             const signal_data = JSON.stringify({
                 type: 'WEBRTC_SIGNAL',
                 senderId: data.senderId,
-                targetId: data.targetId, // Используется клиентом для идентификации получателя сигнала
+                targetId: data.targetId,
                 signal: data.signal
             });
             
             wss.clients.forEach(function each(client) {
-                // НЕ отправляем сигнал обратно отправителю
                 if (client.readyState === WebSocket.OPEN && client !== ws) { 
                     client.send(signal_data);
                 }
@@ -106,7 +98,6 @@ wss.on('connection', function connection(ws) {
         if (closedPeerId) {
             clients.delete(closedPeerId);
             
-            // Оповещение всех об удалении клиента
             wss.clients.forEach(client => {
                 if (client.readyState === WebSocket.OPEN) {
                     client.send(JSON.stringify({
@@ -116,8 +107,6 @@ wss.on('connection', function connection(ws) {
                 }
             });
             console.log(`[SYSTEM] Client disconnected. Peer ID removed: ${closedPeerId}`);
-        } else {
-            console.log('[SYSTEM] Client disconnected (unregistered).');
         }
     });
 });
