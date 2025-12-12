@@ -3,92 +3,165 @@
 <head>
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
-    <title>[INIT] OMEGA CONFERENCE v1.0.3</title>
+    <title>[INIT] NEON CYBER CONFERENCE v1.0.4</title>
     <script src="https://cdn.jsdelivr.net/npm/simple-peer@9.11.1/simplepeer.min.js"></script> 
     <style>
-        /* [HACKER_STYLE] */
+        /* [NEON_CYBER_STYLE] */
+        :root {
+            --bg-color: #111115;
+            --main-neon: #33ccff; /* Neon Blue */
+            --accent-neon: #ff66cc; /* Neon Pink */
+            --font-color: #e0e0ff;
+            --font-mono: 'Consolas', 'Monospace', monospace;
+        }
+
         body {
-            background-color: #000000;
-            color: #00FF00;
-            font-family: 'Consolas', 'Monospace', monospace;
+            background-color: var(--bg-color);
+            color: var(--font-color);
+            font-family: var(--font-mono);
             margin: 0;
             padding: 20px;
             display: flex;
             flex-direction: column;
             min-height: 100vh;
         }
+
         .main-grid {
-            max-width: 1200px;
+            max-width: 1400px;
             margin: 0 auto;
             width: 100%;
-            border: 2px solid #00FF00;
-            box-shadow: 0 0 15px #00FF00;
-            padding: 10px;
+            border: 2px solid var(--main-neon);
+            box-shadow: 0 0 15px var(--main-neon);
+            padding: 15px;
             display: grid;
-            grid-template-columns: 2fr 1fr;
-            gap: 10px;
+            grid-template-columns: 3fr 1fr;
+            gap: 20px;
+            flex-grow: 1;
         }
         
+        h3 {
+            color: var(--accent-neon);
+            text-shadow: 0 0 5px var(--accent-neon);
+            border-bottom: 1px solid var(--accent-neon);
+            padding-bottom: 5px;
+            margin-top: 0;
+        }
+
+        /* --- NICKNAME FORM --- */
+        #nick_form {
+            padding: 15px;
+            margin-bottom: 20px;
+            border: 1px dashed var(--main-neon);
+            text-align: center;
+        }
+
+        /* --- VIDEO/CALLS SECTION --- */
         .video-grid {
-            display: flex;
-            flex-wrap: wrap;
+            display: grid;
+            grid-template-columns: repeat(auto-fit, minmax(280px, 1fr));
             gap: 10px;
-            min-height: 250px;
-            border: 1px solid #FF00FF;
-            padding: 5px;
+            min-height: 400px;
+            border: 1px solid var(--main-neon);
+            padding: 10px;
+            background-color: #0d0d10;
         }
         
         .video-wrapper {
             position: relative;
-            width: 48%; /* 2 колонки */
-            min-width: 200px;
-            background-color: #111;
-            border: 2px solid #FF00FF;
+            background-color: #1a1a20;
+            border: 2px solid var(--accent-neon);
             box-sizing: border-box;
+            aspect-ratio: 16 / 9; /* Стандартизация соотношения */
+            overflow: hidden;
         }
         
         .video-wrapper video {
             width: 100%;
-            height: auto;
+            height: 100%;
+            object-fit: cover;
             display: block;
         }
         
         .video-label {
             position: absolute;
-            bottom: 0;
+            top: 0;
             left: 0;
             background-color: rgba(0, 0, 0, 0.7);
-            color: #00FF00;
-            padding: 2px 5px;
-            font-size: 0.8em;
-            width: 100%;
-            box-sizing: border-box;
-            text-align: center;
+            color: var(--main-neon);
+            padding: 4px 8px;
+            font-size: 0.9em;
+            border-bottom-right-radius: 5px;
+            text-shadow: 0 0 2px var(--main-neon);
         }
-        
+
+        /* --- CHAT SECTION --- */
+        .right-panel {
+            display: flex;
+            flex-direction: column;
+        }
+
         .chat-box {
-            height: 40vh; 
-            overflow-y: scroll;
+            height: 70vh; /* Увеличение высоты чата */
+            overflow-y: auto;
             margin-bottom: 10px;
-            padding: 5px;
-            border: 1px solid #006600;
+            padding: 10px;
+            border: 1px solid var(--accent-neon);
+            background-color: #0d0d10;
+            flex-grow: 1;
         }
-        /* Остальные стили из предыдущей версии (кнопки, инпуты) */
-        .system-message { color: #FFFF00; font-weight: bold; }
-        .user-message strong { color: #00AAFF; margin-right: 5px; }
-        
+
+        /* --- MESSAGE STYLES --- */
+        .system-message { 
+            color: #ffaa00; /* Yellow */
+            font-weight: bold; 
+        }
+        .user-message {
+            margin: 5px 0;
+            word-wrap: break-word;
+        }
+        .user-message strong { 
+            color: var(--main-neon); 
+            margin-right: 5px; 
+        }
+
+        /* --- INPUTS & BUTTONS --- */
         input[type="text"], button {
-            background-color: #111111;
-            color: #00FF00;
-            border: 1px solid #00FF00;
-            padding: 8px;
+            background-color: #222225;
+            color: var(--font-color);
+            border: 1px solid var(--main-neon);
+            padding: 10px;
             font-family: inherit;
+            box-shadow: 0 0 5px rgba(51, 204, 255, 0.5);
+            transition: all 0.2s;
         }
         
-        .message-input { display: flex; }
-        .message-input input { flex-grow: 1; margin-right: 5px; }
+        button:hover:not(:disabled) {
+            background-color: var(--main-neon);
+            color: var(--bg-color);
+            cursor: pointer;
+            box-shadow: 0 0 15px var(--main-neon);
+        }
         
-        #nickname_display, #peer_id_display { margin-bottom: 10px; color: #FF00FF; }
+        button:disabled {
+            opacity: 0.5;
+            cursor: not-allowed;
+        }
+
+        .message-input { 
+            display: flex; 
+            margin-top: auto; /* Прижимаем ко дну */
+        }
+        .message-input input { 
+            flex-grow: 1; 
+            margin-right: 5px; 
+        }
+        
+        .call-controls button {
+            margin-right: 10px;
+            margin-top: 10px;
+            border-color: var(--accent-neon);
+            box-shadow: 0 0 5px rgba(255, 102, 204, 0.5);
+        }
     </style>
 </head>
 <body>
@@ -96,33 +169,32 @@
     <div class="main-grid">
         
         <div class="left-panel">
-            <p id="nickname_display">STATUS: [PENDING CALLSIGN]</p>
-            <p id="peer_id_display">PEER_ID: [GENERATING...]</p>
+            <h3 id="conference_status">[NEON_CYBER_CORE] STATUS: OFFLINE</h3>
 
             <div class="form-group" id="nick_form">
-                <input type="text" id="nickname_input" placeholder=">>> ENTER YOUR CALLSIGN" required>
-                <button onclick="saveNickname()">[INIT_CONFERENCE]</button>
+                <input type="text" id="nickname_input" placeholder=">>> ВВЕДИ СВОЙ НИК/CALLSIGN" required>
+                <button onclick="saveNickname()">[АКТИВИРОВАТЬ КОНФЕРЕНЦИЮ]</button>
+            </div>
+            
+            <div class="call-controls" style="display: none;" id="controls_block">
+                <h3>[МЕДИА-КОНТРОЛЛЕР]</h3>
+                <button id="hangupButton" onclick="hangUp()">[ОТКЛЮЧИТЬ ВСЕ]</button>
+                <button id="audioToggle" onclick="toggleAudio()">[ВЫКЛ. МИКР.]</button>
+                <button id="videoToggle" onclick="toggleVideo()">[ВЫКЛ. ВИДЕО]</button>
             </div>
             
             <div class="video-grid" id="video_grid">
                 </div>
-
-            <div class="call-controls">
-                <h3>[CONFERENCE_CONTROLS]</h3>
-                <button id="hangupButton" disabled onclick="hangUp()">[TERMINATE_ALL]</button>
-                <button id="audioToggle" disabled onclick="toggleAudio()">[MUTE_AUDIO]</button>
-                <button id="videoToggle" disabled onclick="toggleVideo()">[DISABLE_VIDEO]</button>
-            </div>
         </div>
 
         <div class="right-panel">
-            <h3>[GLOBAL_CHAT_LOG]</h3>
+            <h3>[ГЛОБАЛЬНЫЙ ТЕКСТ-ЧАТ (SMS)]</h3>
             <div class="chat-box" id="chat_box">
                 </div>
 
             <div class="message-input">
-                <input type="text" id="message_input" placeholder=">>> MESSAGE (ENTER to transmit)" onkeydown="if(event.keyCode===13) sendMessage()" disabled>
-                <button onclick="sendMessage()" id="send_button" disabled>[TRANSMIT]</button>
+                <input type="text" id="message_input" placeholder=">>> СООБЩЕНИЕ (Enter для отправки)" onkeydown="if(event.keyCode===13) sendMessage()" disabled>
+                <button onclick="sendMessage()" id="send_button" disabled>[ПЕРЕДАТЬ]</button>
             </div>
         </div>
     </div>
@@ -133,19 +205,17 @@
         let peerId; 
         let nickname;
         let localStream;
-        // КАРТА ДЛЯ ХРАНЕНИЯ СОЕДИНЕНИЙ: { peerId: simple-peer_instance }
-        const peers = new Map();
-        // КАРТА ДЛЯ ХРАНЕНИЯ ИНФОРМАЦИИ О ПОЛЬЗОВАТЕЛЯХ: { peerId: { id, nickname } }
-        let allUsers = new Map();
+        const peers = new Map(); // { peerId: simple-peer_instance }
+        let allUsers = new Map(); // { peerId: { id, nickname } }
 
         // ЭЛЕМЕНТЫ DOM
         const chatBox = document.getElementById('chat_box');
         const messageInput = document.getElementById('message_input');
         const sendButton = document.getElementById('send_button');
         const nicknameInput = document.getElementById('nickname_input');
-        const setNickButton = document.getElementById('nick_form').querySelector('button');
-        const nicknameDisplay = document.getElementById('nickname_display');
-        const peerIdDisplay = document.getElementById('peer_id_display');
+        const nickForm = document.getElementById('nick_form');
+        const controlsBlock = document.getElementById('controls_block');
+        const conferenceStatus = document.getElementById('conference_status');
         const videoGrid = document.getElementById('video_grid');
         const hangupButton = document.getElementById('hangupButton');
         const audioToggle = document.getElementById('audioToggle');
@@ -153,20 +223,21 @@
 
         // [INIT] ГЕНЕРАЦИЯ УНИКАЛЬНОГО ID И WEB SOCKET
         peerId = 'PEER_' + Math.random().toString(36).substring(2, 9).toUpperCase();
-        peerIdDisplay.textContent = `PEER_ID: [${peerId}]`;
         
         function initWebSocket() {
+            conferenceStatus.innerHTML = `[NEON_CYBER_CORE] STATUS: CONNECTING... (PEER: ${peerId})`;
             const protocol = window.location.protocol === 'https:' ? 'wss:' : 'ws:';
-            ws = new WebSocket(`${protocol}//${window.location.host}`);
+            // Используем host (localhost:3000 или домен)
+            ws = new WebSocket(`${protocol}//${window.location.host}`); 
 
             ws.onopen = function() {
-                // Если ник уже есть, сразу регистрируем Peer ID и запускаем медиа
+                conferenceStatus.innerHTML = `[NEON_CYBER_CORE] STATUS: WAITING FOR CALLSIGN. (PEER: ${peerId})`;
+                displayMessage({ type: 'SYSTEM', message: 'СОЕДИНЕНИЕ УСТАНОВЛЕНО. ВВЕДИТЕ НИК ДЛЯ АКТИВАЦИИ СИСТЕМ.' });
+                
+                // Автозаполнение ника, если есть в localStorage
                 const savedNick = localStorage.getItem('nickname');
                 if (savedNick) {
                     nicknameInput.value = savedNick;
-                    saveNickname(true); // Автозапуск
-                } else {
-                    displayMessage({ type: 'SYSTEM', message: 'ENTER_CALLSIGN_TO_INITIATE_CONFERENCE.' });
                 }
             };
 
@@ -175,52 +246,57 @@
                     const data = JSON.parse(event.data);
                     handleIncomingMessage(data);
                 } catch (e) {
-                    displayMessage({ type: 'ERROR', message: 'INCOMING DATA CORRUPTED.' });
+                    displayMessage({ type: 'ERROR', message: 'ОШИБКА ДАННЫХ: INCOMING DATA CORRUPTED.' });
                 }
             };
             
             ws.onclose = function() {
-                displayMessage({ type: 'SYSTEM', message: 'CONNECTION_LOST. RESTARTING PROTOCOLS...' });
+                conferenceStatus.innerHTML = `[NEON_CYBER_CORE] STATUS: OFFLINE. (PEER: ${peerId})`;
+                hangUp(false); // Очищаем интерфейс
+                displayMessage({ type: 'SYSTEM', message: 'СВЯЗЬ ПОТЕРЯНА. RESTARTING PROTOCOLS...' });
                 messageInput.disabled = true;
                 sendButton.disabled = true;
-                hangUp(false); // Не пытаемся переподключиться
+                nickForm.style.display = 'block';
+                controlsBlock.style.display = 'none';
             };
         }
 
         // [NICKNAME_HANDLER] Сохранение ника, запуск медиа и регистрация
-        async function saveNickname(auto = false) {
+        async function saveNickname() {
             const nick = nicknameInput.value.trim().toUpperCase();
 
             if (nick.length < 2) {
-                if (!auto) alert("NICKNAME_ERROR: TOO SHORT (MIN 2 CHARACTERS)");
+                alert("NICKNAME_ERROR: МИНИМУМ 2 СИМВОЛА");
                 return;
             }
 
             nickname = nick;
             localStorage.setItem('nickname', nickname);
-            nicknameDisplay.innerHTML = `STATUS: [CALLSIGN SET AS: ${nickname}]`;
             
-            // 1. Активация контролов
+            // 1. Скрытие формы и активация контролов
+            nickForm.style.display = 'none';
+            controlsBlock.style.display = 'block';
             messageInput.disabled = false;
             sendButton.disabled = false;
-            nicknameInput.disabled = true;
-            setNickButton.disabled = true;
             messageInput.focus();
             
-            // 2. Получение локального потока и добавление его в DOM
+            conferenceStatus.innerHTML = `[NEON_CYBER_CORE] STATUS: ONLINE | CALLSIGN: ${nickname}`;
+            
+            // 2. Получение локального потока (АУДИО + ВИДЕО)
             try {
                 await initLocalMedia();
             } catch (e) {
-                displayMessage({ type: 'ERROR', message: `MEDIA_INIT_FAIL: ${e.message}. VOICE/VIDEO DISABLED.` });
+                displayMessage({ type: 'ERROR', message: `МЕДИА-ОШИБКА: ${e.name}. ГОЛОС/ВИДЕО НЕДОСТУПНЫ.` });
             }
             
-            // 3. Регистрация в глобальном чате
+            // 3. Регистрация в глобальном чате (запуск Mesh-протокола)
             if (ws.readyState === WebSocket.OPEN) {
                  ws.send(JSON.stringify({
                     type: 'REGISTER',
                     peerId: peerId,
                     sender: nickname
                 }));
+                displayMessage({ type: 'SYSTEM', message: `СИСТЕМА АКТИВИРОВАНА. CALLSIGN: ${nickname}. УСТАНОВКА P2P СОЕДИНЕНИЙ...` });
             }
         }
         
@@ -229,11 +305,11 @@
             localStream = await navigator.mediaDevices.getUserMedia({ video: true, audio: true });
             
             // Создание элемента для локального видео
-            const localWrapper = createVideoWrapper(peerId, nickname + ' (LOCAL)');
+            const localWrapper = createVideoWrapper(peerId, nickname + ' (ТЫ)');
             const localVideo = localWrapper.querySelector('video');
             localVideo.muted = true; // Отключаем звук для своего видео
             localVideo.srcObject = localStream;
-            videoGrid.appendChild(localWrapper);
+            videoGrid.prepend(localWrapper); // Свой поток всегда первый
             
             // Активация контролов
             hangupButton.disabled = false;
@@ -253,10 +329,10 @@
                     break;
                 case 'USER_LEFT':
                     removePeer(data.leftId);
-                    displayMessage({ type: 'SYSTEM', message: `USER_LEFT: ${data.leftId}` });
+                    displayMessage({ type: 'SYSTEM', message: `ПОЛЬЗОВАТЕЛЬ ОТКЛЮЧИЛСЯ: ${allUsers.get(data.leftId)?.nickname || data.leftId}` });
+                    allUsers.delete(data.leftId); // Удаляем из списка
                     break;
                 case 'WEBRTC_SIGNAL':
-                    // Сигнал предназначен для peerId, который его должен обработать (либо инициатор, либо ответчик)
                     handleSignal(data.senderId, data.signal);
                     break;
             }
@@ -267,24 +343,20 @@
             const newUsersMap = new Map();
             users.forEach(u => newUsersMap.set(u.id, u));
             
-            // 1. Обработка пользователей, которые ушли
+            // 1. Обработка ушедших (удаление старых соединений)
             for (const id of allUsers.keys()) {
                 if (!newUsersMap.has(id) && id !== peerId) {
                     removePeer(id);
                 }
             }
             
-            // 2. Обработка новых пользователей
+            // 2. Обработка новых (создание новых соединений)
             for (const [id, user] of newUsersMap.entries()) {
-                // Если это не мы сами, и это новый пользователь, и у нас нет соединения с ним
                 if (id !== peerId && !peers.has(id)) {
-                    // Создаем новое P2P соединение (мы будем инициатором, если наш ID < их ID)
+                    // Используем ID для детерминированного выбора инициатора
                     const initiator = peerId < id; 
                     if (localStream) {
                         createPeer(id, user.nickname, initiator);
-                    } else {
-                        // Если медиа не запущено, мы не можем начать соединение (только слушать)
-                        displayMessage({ type: 'WARNING', message: `Cannot initiate P2P with ${id}. Local media not running.` });
                     }
                 }
             }
@@ -292,29 +364,19 @@
             allUsers = newUsersMap;
         }
 
-        // [PEER_MANAGER] Создание нового P2P соединения
+        // [PEER_MANAGER] Создание нового P2P соединения (Голос/Видео)
         function createPeer(targetId, targetNickname, initiator) {
-            // Если соединение уже есть, игнорируем
             if (peers.has(targetId)) return;
 
-            displayMessage({ 
-                type: 'SYSTEM', 
-                message: `P2P_INIT: ${targetNickname} (${targetId}). Initiator: ${initiator}` 
-            });
-
-            // Создание SimplePeer
             const newPeer = new SimplePeer({
                 initiator: initiator,
-                trickle: true, // Использование trickle ICE для более быстрого соединения
+                trickle: true, 
                 stream: localStream
             });
 
-            // Сохранение в карте
             peers.set(targetId, newPeer);
 
-            // Настройка событий
             newPeer.on('signal', data => {
-                // Отправка сигнальных данных (Offer, Answer, ICE) на сервер
                 if (ws.readyState === WebSocket.OPEN) {
                     ws.send(JSON.stringify({
                         type: 'WEBRTC_SIGNAL',
@@ -326,57 +388,45 @@
             });
 
             newPeer.on('stream', stream => {
-                // Прием удаленного потока
+                // Прием удаленного потока (Аудио и Видео)
                 addRemoteStream(targetId, targetNickname, stream);
-            });
-
-            newPeer.on('connect', () => {
                 displayMessage({ 
                     type: 'SYSTEM', 
-                    message: `P2P_CONNECTED_WITH: ${targetNickname}` 
+                    message: `СВЯЗЬ УСТАНОВЛЕНА: ${targetNickname}. (ГОЛОС/ВИДЕО АКТИВНЫ)` 
                 });
             });
 
             newPeer.on('close', () => {
+                removePeer(targetId, true);
                 displayMessage({ 
                     type: 'SYSTEM', 
-                    message: `P2P_CLOSED_WITH: ${targetNickname}` 
+                    message: `СВЯЗЬ ПРЕРВАНА: ${targetNickname}` 
                 });
-                removePeer(targetId, true);
             });
 
             newPeer.on('error', (err) => {
                 console.error(`P2P Error with ${targetId}:`, err);
-                displayMessage({ 
-                    type: 'ERROR', 
-                    message: `P2P_ERROR_WITH: ${targetNickname} (${err.code})` 
-                });
                 removePeer(targetId, true);
             });
         }
         
         // [PEER_MANAGER] Обработка входящего сигнала
         function handleSignal(senderId, signal) {
-            // Если сигнал пришел от нас самих (loopback), игнорируем
             if (senderId === peerId) return;
 
-            // Если peer с отправителем уже существует, передаем сигнал
             if (peers.has(senderId)) {
                 peers.get(senderId).signal(signal);
                 return;
             }
 
-            // Если peer не существует, но пришел 'offer' или 'signal' - создаем новый peer (не инициатор)
-            if (signal.type === 'offer' || !signal.type) { // signal.type может быть undefined для ICE
+            if (signal.type === 'offer' || !signal.type) { 
                 const senderInfo = allUsers.get(senderId);
-                const senderNickname = senderInfo ? senderInfo.nickname : 'UNKNOWN';
+                const senderNickname = senderInfo ? senderInfo.nickname : 'НЕИЗВЕСТНО';
                 
-                // Создаем peer
                 if (localStream) {
-                    createPeer(senderId, senderNickname, false);
+                    // Создаем peer-ответчик
+                    createPeer(senderId, senderNickname, false); 
                     peers.get(senderId).signal(signal);
-                } else {
-                     displayMessage({ type: 'WARNING', message: `Dropping incoming P2P signal from ${senderId}. Local media not ready.` });
                 }
             }
         }
@@ -411,11 +461,10 @@
             
             const video = document.createElement('video');
             video.autoplay = true;
-            // video.muted = (id === peerId); // Только локальное видео должно быть muted
             
             const labelEl = document.createElement('div');
             labelEl.className = 'video-label';
-            labelEl.textContent = `[CALLSIGN] ${label}`;
+            labelEl.textContent = `[ПИР] ${label}`;
             
             wrapper.appendChild(video);
             wrapper.appendChild(labelEl);
@@ -440,9 +489,9 @@
         function displayMessage(data) {
             const messageElement = document.createElement('p');
             
-            if (data.type === 'SYSTEM' || data.type === 'ERROR' || data.type === 'WARNING') {
+            if (data.type === 'SYSTEM' || data.type === 'ERROR') {
                 messageElement.className = 'system-message';
-                messageElement.innerHTML = `[${data.type}] ${data.message}`;
+                messageElement.innerHTML = `[СИСТЕМА] ${data.message}`;
             } else {
                 messageElement.className = 'user-message';
                 messageElement.innerHTML = `<strong>[${data.sender}]</strong> > ${data.message}`;
@@ -466,21 +515,23 @@
                 localStream = null;
             }
             
-            // Очистка DOM
+            // Очистка DOM, кроме элемента формы
             videoGrid.innerHTML = ''; 
             
-            // Если нужно закрыть WS
             if (do_disconnect && ws.readyState === WebSocket.OPEN) {
                 ws.close();
             }
             
-            // Деактивация контролов
+            // Сброс UI
             hangupButton.disabled = true;
             audioToggle.disabled = true;
             videoToggle.disabled = true;
-            audioToggle.textContent = '[MUTE_AUDIO]';
-            videoToggle.textContent = '[DISABLE_VIDEO]';
-            displayMessage({ type: 'SYSTEM', message: 'ALL_PROTOCOLS_TERMINATED.' });
+            audioToggle.textContent = '[ВЫКЛ. МИКР.]';
+            videoToggle.textContent = '[ВЫКЛ. ВИДЕО]';
+            
+            if (do_disconnect) {
+                // Если был ручной сброс, UI перейдет в режим "Disconnected" через ws.onclose
+            }
         }
         
         // [CONTROLS] Переключение аудио
@@ -489,8 +540,8 @@
             const audioTrack = localStream.getAudioTracks()[0];
             if (audioTrack) {
                 audioTrack.enabled = !audioTrack.enabled;
-                audioToggle.textContent = audioTrack.enabled ? '[MUTE_AUDIO]' : '[UNMUTE_AUDIO]';
-                displayMessage({ type: 'SYSTEM', message: audioTrack.enabled ? 'AUDIO_UNMUTED_TO_ALL' : 'AUDIO_MUTED_TO_ALL' });
+                audioToggle.textContent = audioTrack.enabled ? '[ВЫКЛ. МИКР.]' : '[ВКЛ. МИКР.]';
+                displayMessage({ type: 'SYSTEM', message: audioTrack.enabled ? 'АУДИО ВКЛЮЧЕНО' : 'АУДИО ОТКЛЮЧЕНО' });
             }
         }
 
@@ -500,21 +551,13 @@
             const videoTrack = localStream.getVideoTracks()[0];
             if (videoTrack) {
                 videoTrack.enabled = !videoTrack.enabled;
-                videoToggle.textContent = videoTrack.enabled ? '[DISABLE_VIDEO]' : '[ENABLE_VIDEO]';
-                displayMessage({ type: 'SYSTEM', message: videoTrack.enabled ? 'VIDEO_ENABLED_TO_ALL' : 'VIDEO_DISABLED_TO_ALL' });
+                videoToggle.textContent = videoTrack.enabled ? '[ВЫКЛ. ВИДЕО]' : '[ВКЛ. ВИДЕО]';
+                displayMessage({ type: 'SYSTEM', message: videoTrack.enabled ? 'ВИДЕО ВКЛЮЧЕНО' : 'ВИДЕО ОТКЛЮЧЕНО' });
             }
         }
 
         // АВТОЗАПУСК
         document.addEventListener('DOMContentLoaded', initWebSocket);
-        
-        // Автозапуск сохранения ника по Enter в поле ника
-        nicknameInput.addEventListener('keydown', (e) => {
-            if (e.key === 'Enter') {
-                e.preventDefault();
-                saveNickname();
-            }
-        });
     </script>
 </body>
 </html>
