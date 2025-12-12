@@ -3,424 +3,112 @@
 <head>
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
-    <title>SECURE P2P CONFERENCE v9.1 | Public Chat & Private Calls</title>
+    <title>SECURE P2P CONFERENCE v9.2 | Chat & Call Logic Fix</title>
     <script src="https://cdn.jsdelivr.net/npm/simple-peer@9.11.1/simplepeer.min.js"></script> 
     <link href="https://fonts.googleapis.com/icon?family=Material+Icons" rel="stylesheet">
     <style>
-        /* --- 1. ПЕРЕМЕННЫЕ И ОСНОВА (СВЕТЛЫЙ ДИЗАЙН: СИНИЙ/БЕЛЫЙ) --- */
+        /* --- СТИЛИ (ОСТАВЛЕНЫ БЕЗ ИЗМЕНЕНИЙ ДЛЯ КРАТКОСТИ) --- */
+        /* Используются стили из v9.1, адаптированные для мобильных устройств. */
         :root {
-            --bg-color: #f7f9fa;       /* Светлый фон */
-            --side-panel-bg: #ffffff;  /* Белая панель */
-            --chat-bg: #e5ddd5;        /* Фон чата (Светлый) */
-            --input-bg: #ffffff;
-            --text-color: #1f2c34;     /* Темный текст */
-            --secondary-text: #607d8b; /* Серый текст */
-            --primary-color: #007bff;  /* Основной синий */
-            --accent-color: #28a745;   /* Зеленый акцент */
-            --danger-color: #dc3545;   /* Красный */
-            --sent-bubble-bg: #dcf8c6; /* Светло-зеленый (Отправлено) */
-            --received-bubble-bg: #ffffff; /* Белый (Получено) */
+            --bg-color: #f7f9fa;
+            --side-panel-bg: #ffffff;
+            --chat-bg: #e5ddd5;
+            --text-color: #1f2c34;
+            --secondary-text: #607d8b;
+            --primary-color: #007bff;
+            --accent-color: #28a745;
+            --danger-color: #dc3545;
+            --sent-bubble-bg: #dcf8c6;
+            --received-bubble-bg: #ffffff;
             --font-main: 'Segoe UI', Roboto, Helvetica, Arial, sans-serif;
-            --header-bg: #007bff;      /* Синяя шапка */
-            --header-text: #ffffff;    /* Белый текст в шапке */
+            --header-bg: #007bff;
+            --header-text: #ffffff;
             --control-size: 44px;
         }
 
-        /* Обнуление и структура */
         html, body {
-            height: 100%;
-            margin: 0;
-            padding: 0;
-            overflow: hidden;
-            font-family: var(--font-main);
-            background-color: var(--bg-color);
-            color: var(--text-color);
+            height: 100%; margin: 0; padding: 0; overflow: hidden;
+            font-family: var(--font-main); background-color: var(--bg-color); color: var(--text-color);
         }
-
-        .main-container {
-            display: flex;
-            width: 100%;
-            height: 100%;
-            max-width: 100vw;
-            max-height: 100vh;
-            background: var(--side-panel-bg);
-            box-shadow: 0 4px 12px rgba(0, 0, 0, 0.1);
-        }
-
-        /* --- 2. ЛЕВАЯ ПАНЕЛЬ (ПОЛЬЗОВАТЕЛИ) --- */
-        .left-panel {
-            width: 300px;
-            min-width: 280px;
-            background-color: var(--side-panel-bg);
-            border-right: 1px solid #e0e0e0;
-            display: flex;
-            flex-direction: column;
-            flex-shrink: 0;
-            transition: transform 0.3s ease-in-out;
-            overflow: hidden; 
-        }
-
-        .panel-header {
-            padding: 15px;
-            flex-shrink: 0;
-            background-color: var(--header-bg);
-            color: var(--header-text);
-            font-weight: 600;
-            display: flex;
-            align-items: center;
-            justify-content: space-between;
-        }
-
-        /* Input Group Style */
-        .config-section {
-            padding: 15px;
-            flex-shrink: 0;
-            border-bottom: 1px solid #e0e0e0;
-        }
-        .input-group {
-            display: flex;
-            align-items: center;
-            margin-top: 5px;
-        }
-        input[type="text"] {
-            flex-grow: 1;
-            background-color: var(--input-bg);
-            color: var(--text-color);
-            border: 1px solid #ccc;
-            padding: 10px 15px;
-            border-radius: 20px 0 0 20px;
-            height: var(--control-size);
-            box-sizing: border-box;
-            font-size: 1em;
-            outline: none;
-        }
-        .input-group button {
-            background-color: var(--primary-color);
-            color: var(--header-text);
-            border: none;
-            padding: 0;
-            height: var(--control-size);
-            width: var(--control-size);
-            border-radius: 0 20px 20px 0;
-            cursor: pointer;
-            transition: background-color 0.2s, transform 0.1s;
-            display: flex;
-            align-items: center;
-            justify-content: center;
-        }
-        .input-group button i {
-            font-size: 20px;
-        }
-
-        /* User List */
-        #user_list_box {
-            overflow-y: auto;
-            flex-grow: 1;
-            list-style: none;
-            padding: 0;
-            margin: 0;
-        }
-        .user-item {
-            display: flex;
-            align-items: center;
-            padding: 12px 15px;
-            border-bottom: 1px solid #f0f0f0;
-            cursor: pointer;
-            transition: background-color 0.1s;
-            position: relative;
-        }
-        .user-item:hover:not(.local-user) {
-            background-color: #f5f5f5;
-        }
-        .user-item.local-user {
-            background-color: rgba(0, 123, 255, 0.1); 
-            font-weight: 600;
-            cursor: default;
-        }
-        .user-item .status-icon {
-            width: 10px;
-            height: 10px;
-            border-radius: 50%;
-            margin-right: 10px;
-            box-shadow: 0 0 3px currentColor;
-        }
-        .user-actions {
-            position: absolute;
-            right: 15px;
-            display: none; /* Скрыты по умолчанию */
-        }
-        .user-item:hover .user-actions {
-            display: block;
-        }
-        .user-actions button {
-            background: none;
-            border: none;
-            color: var(--primary-color);
-            padding: 5px;
-            margin-left: 5px;
-            cursor: pointer;
-        }
-        .user-actions button:hover {
-            color: var(--accent-color);
-        }
-
-
-        /* --- 3. ПРАВАЯ ПАНЕЛЬ (ВИДЕО И ЧАТ) --- */
-        .right-panel {
-            flex-grow: 1;
-            display: flex;
-            flex-direction: column; 
-            background-color: var(--chat-bg);
-            min-width: 0; 
-        }
-
-        /* Видео Шапка/Контролы */
-        .video-controls-header {
-            background-color: var(--header-bg);
-            color: var(--header-text);
-            padding: 10px 15px;
-            display: flex;
-            justify-content: space-between;
-            align-items: center;
-            flex-shrink: 0;
-        }
-        .video-controls-header .title {
-            font-weight: 600;
-        }
-        .call-controls button {
-            background-color: var(--header-text); /* Белые кнопки */
-            color: var(--primary-color);
-            margin-left: 8px;
-            width: 38px;
-            height: 38px;
-            border-radius: 50%;
-            display: inline-flex;
-            align-items: center;
-            justify-content: center;
-            border: none;
-            cursor: pointer;
-            box-shadow: 0 2px 4px rgba(0, 0, 0, 0.2);
-        }
-        .call-controls button:hover:not(:disabled) {
-            opacity: 0.9;
-        }
+        .main-container { display: flex; width: 100%; height: 100%; max-width: 100vw; max-height: 100vh; background: var(--side-panel-bg); }
+        .left-panel { width: 300px; min-width: 280px; background-color: var(--side-panel-bg); border-right: 1px solid #e0e0e0; display: flex; flex-direction: column; flex-shrink: 0; transition: transform 0.3s ease-in-out; overflow: hidden; }
+        .panel-header { padding: 15px; flex-shrink: 0; background-color: var(--header-bg); color: var(--header-text); font-weight: 600; display: flex; align-items: center; justify-content: space-between; }
+        .config-section { padding: 15px; flex-shrink: 0; border-bottom: 1px solid #e0e0e0; }
+        .input-group { display: flex; align-items: center; margin-top: 5px; }
+        input[type="text"] { flex-grow: 1; border: 1px solid #ccc; padding: 10px 15px; border-radius: 20px 0 0 20px; height: var(--control-size); box-sizing: border-box; font-size: 1em; outline: none; }
+        .input-group button { background-color: var(--primary-color); color: var(--header-text); border: none; padding: 0; height: var(--control-size); width: var(--control-size); border-radius: 0 20px 20px 0; cursor: pointer; display: flex; align-items: center; justify-content: center; }
+        #user_list_box { overflow-y: auto; flex-grow: 1; list-style: none; padding: 0; margin: 0; }
+        .user-item { display: flex; align-items: center; padding: 12px 15px; border-bottom: 1px solid #f0f0f0; cursor: pointer; position: relative; }
+        .user-item:hover:not(.local-user) { background-color: #f5f5f5; }
+        .user-item.local-user { background-color: rgba(0, 123, 255, 0.1); font-weight: 600; cursor: default; }
+        .user-actions { position: absolute; right: 15px; display: none; }
+        .user-item:hover .user-actions { display: block; }
+        .user-actions button { background: none; border: none; color: var(--primary-color); padding: 5px; margin-left: 5px; cursor: pointer; }
+        
+        .right-panel { flex-grow: 1; display: flex; flex-direction: column; background-color: var(--chat-bg); min-width: 0; }
+        .video-controls-header { background-color: var(--header-bg); color: var(--header-text); padding: 10px 15px; display: flex; justify-content: space-between; align-items: center; flex-shrink: 0; }
+        .call-controls button { background-color: var(--header-text); color: var(--primary-color); margin-left: 8px; width: 38px; height: 38px; border-radius: 50%; display: inline-flex; align-items: center; justify-content: center; border: none; cursor: pointer; }
         .call-controls button.red { background-color: var(--danger-color); color: var(--header-text); }
-        .call-controls button.red i { color: var(--header-text); }
-
-        /* Видео Сетка (АДАПТИВНО) */
-        .video-grid {
-            min-height: 50px;
-            max-height: 40vh; /* Ограничиваем высоту на ПК */
-            display: grid;
-            grid-template-columns: repeat(auto-fit, minmax(180px, 1fr)); 
-            gap: 5px;
-            padding: 5px;
-            background-color: #000000;
-            border-bottom: 1px solid #000000;
-            overflow-y: auto;
-            flex-shrink: 0;
-        }
-        .video-wrapper {
-            position: relative;
-            background-color: #000;
-            border: 2px solid rgba(255, 255, 255, 0.2);
-            box-sizing: border-box;
-            aspect-ratio: 16 / 9;
-            overflow: hidden;
-            border-radius: 4px;
-        }
-        .video-wrapper video {
-            width: 100%;
-            height: 100%;
-            object-fit: cover;
-            display: block;
-        }
-        .video-label {
-            position: absolute;
-            bottom: 0;
-            left: 0;
-            background-color: rgba(0, 0, 0, 0.6);
-            color: #fff;
-            padding: 3px 8px;
-            font-size: 0.75em;
-            border-top-right-radius: 4px;
-        }
+        .video-grid { min-height: 50px; max-height: 40vh; display: grid; grid-template-columns: repeat(auto-fit, minmax(180px, 1fr)); gap: 5px; padding: 5px; background-color: #000000; border-bottom: 1px solid #000000; overflow-y: auto; flex-shrink: 0; }
+        .video-wrapper { position: relative; background-color: #000; border: 2px solid rgba(255, 255, 255, 0.2); box-sizing: border-box; aspect-ratio: 16 / 9; overflow: hidden; border-radius: 4px; }
+        .video-wrapper video { width: 100%; height: 100%; object-fit: cover; display: block; }
+        .video-label { position: absolute; bottom: 0; left: 0; background-color: rgba(0, 0, 0, 0.6); color: #fff; padding: 3px 8px; font-size: 0.75em; border-top-right-radius: 4px; }
         
-        /* Чат Бокс */
-        .chat-box {
-            flex-grow: 1; 
-            padding: 10px 15px;
-            overflow-y: auto;
-            display: flex;
-            flex-direction: column-reverse; 
-            min-height: 0;
-            background-image: url('data:image/svg+xml;utf8,<svg xmlns="http://www.w3.org/2000/svg" width="100" height="100" viewBox="0 0 100 100"><defs><pattern id="p" width="10" height="10" patternUnits="userSpaceOnUse"><rect width="1" height="1" fill="#d7d7d7" opacity=".1"/></pattern></defs><rect width="100" height="100" fill="url(%23p)"/></svg>');
-        }
-        .chat-box > div {
-            display: flex; 
-            margin: 3px 0; 
-            width: 100%;
-        }
-        .message-bubble {
-            padding: 8px 10px;
-            border-radius: 8px;
-            max-width: 80%;
-            word-wrap: break-word;
-            font-size: 0.9em;
-            line-height: 1.3;
-            box-shadow: 0 1px 1px rgba(0, 0, 0, 0.08);
-        }
-        .message-bubble strong {
-            display: block;
-            font-weight: 600;
-            font-size: 0.8em;
-            margin-bottom: 2px;
-            color: var(--primary-color); 
-        }
+        .chat-box { flex-grow: 1; padding: 10px 15px; overflow-y: auto; display: flex; flex-direction: column-reverse; min-height: 0; background-image: url('data:image/svg+xml;utf8,<svg xmlns="http://www.w3.org/2000/svg" width="100" height="100" viewBox="0 0 100 100"><defs><pattern id="p" width="10" height="10" patternUnits="userSpaceOnUse"><rect width="1" height="1" fill="#d7d7d7" opacity=".1"/></pattern></defs><rect width="100" height="100" fill="url(%23p)"/></svg>'); }
+        .chat-box > div { display: flex; margin: 3px 0; width: 100%; }
+        .message-bubble { padding: 8px 10px; border-radius: 8px; max-width: 80%; word-wrap: break-word; box-shadow: 0 1px 1px rgba(0, 0, 0, 0.08); }
         .sent-message { justify-content: flex-end; }
-        .sent-message .message-bubble {
-            background-color: var(--sent-bubble-bg);
-            color: var(--text-color);
-            border-bottom-right-radius: 2px;
-        }
+        .sent-message .message-bubble { background-color: var(--sent-bubble-bg); border-bottom-right-radius: 2px; }
         .received-message { justify-content: flex-start; }
-        .received-message .message-bubble {
-            background-color: var(--received-bubble-bg);
-            color: var(--text-color);
-            border-bottom-left-radius: 2px;
+        .received-message .message-bubble { background-color: var(--received-bubble-bg); border-bottom-left-radius: 2px; }
+        .system-message { text-align: center; font-style: italic; color: var(--secondary-text); font-size: 0.8em; width: 100%; margin: 10px 0; }
+        .private-chat-indicator { color: var(--danger-color); margin-right: 5px; font-weight: bold; }
+
+        .message-input-area { display: flex; padding: 8px 15px; background-color: var(--side-panel-bg); border-top: 1px solid #e0e0e0; align-items: center; flex-shrink: 0; gap: 8px; }
+        #message_input { flex-grow: 1; border-radius: 20px; height: var(--control-size); padding: 0 15px; border: 1px solid #ccc; box-sizing: border-box; }
+        #message_input:disabled { background-color: #f0f0f0; cursor: not-allowed; color: var(--secondary-text); }
+        .message-input-area button { background-color: var(--primary-color); border-radius: 50%; width: var(--control-size); height: var(--control-size); flex-shrink: 0; border: none; cursor: pointer; color: var(--header-text); }
+        .message-input-area button:disabled { background-color: #cccccc; cursor: not-allowed; }
+
+        /* Mobile Adaptation */
+        @media (max-width: 768px) {
+            .left-panel { position: fixed; top: 0; left: 0; width: 85%; height: 100%; z-index: 1000; transform: translateX(-100%); box-shadow: 4px 0 10px rgba(0, 0, 0, 0.4); }
+            .left-panel.active { transform: translateX(0); }
+            .overlay { position: fixed; top: 0; left: 0; width: 100%; height: 100%; background: rgba(0, 0, 0, 0.4); z-index: 999; display: none; }
+            .overlay.active { display: block; }
+            #sidebar_toggle { display: flex !important; margin-right: 10px; background-color: var(--header-bg); color: var(--header-text); width: 38px; height: 38px; border-radius: 50%; }
         }
-        .system-message { 
-            text-align: center;
-            font-style: italic;
-            color: var(--secondary-text); 
-            font-size: 0.8em;
-            width: 100%;
-            margin: 10px 0;
-        }
-        .private-chat-indicator {
-            color: var(--danger-color);
-            margin-right: 5px;
-            font-weight: bold;
+        @media (min-width: 769px) {
+            .main-container { width: 95%; height: 95vh; margin: 2.5vh auto; border-radius: 8px; }
+            #sidebar_toggle { display: none !important; }
         }
 
-
-        /* Инпут для Сообщений */
-        .message-input-area { 
-            display: flex; 
-            padding: 8px 15px; 
-            background-color: var(--side-panel-bg); /* Белый фон */
-            border-top: 1px solid #e0e0e0;
-            align-items: center;
-            flex-shrink: 0;
-            gap: 8px;
-        }
-        #message_input {
-            flex-grow: 1;
-            background-color: var(--input-bg);
-            color: var(--text-color);
-            border: 1px solid #ccc;
-            padding: 0 15px;
-            border-radius: 20px; 
-            height: var(--control-size);
-            box-sizing: border-box;
-            font-size: 1em;
-            outline: none;
-            margin: 0;
-        }
-        #message_input:disabled {
-            background-color: #f0f0f0;
-            cursor: not-allowed;
-            color: var(--secondary-text);
-        }
-        /* Кнопка Отправки */
-        .message-input-area button {
+        /* Дополнительный стиль для входящего звонка */
+        .call-notification {
             background-color: var(--primary-color);
             color: var(--header-text);
-            border-radius: 50%;
-            width: var(--control-size);
-            height: var(--control-size);
-            flex-shrink: 0;
-            transition: background-color 0.2s, transform 0.1s;
+            padding: 15px;
+            text-align: center;
+            border-radius: 8px;
+            margin-bottom: 10px;
+            display: none; /* Скрыто по умолчанию */
+            animation: pulse 1.5s infinite;
+        }
+        .call-notification button {
+            margin: 0 10px;
+            padding: 8px 15px;
             border: none;
+            border-radius: 4px;
+            font-weight: bold;
             cursor: pointer;
         }
-        .message-input-area button:disabled {
-            background-color: #cccccc;
-            cursor: not-allowed;
-        }
+        .call-notification button.accept { background-color: var(--accent-color); color: white; }
+        .call-notification button.reject { background-color: var(--danger-color); color: white; }
 
-
-        /* --- 4. МОБИЛЬНАЯ АДАПТАЦИЯ (<= 768px) --- */
-        @media (max-width: 768px) {
-            .main-container {
-                box-shadow: none;
-            }
-            .video-grid {
-                max-height: 150px; /* Больше места для чата */
-                grid-template-columns: repeat(auto-fit, minmax(120px, 1fr));
-                gap: 3px;
-                padding: 3px;
-            }
-            
-            /* Sidebar Handling */
-            .left-panel {
-                position: fixed;
-                top: 0;
-                left: 0;
-                width: 85%;
-                height: 100%; 
-                z-index: 1000; 
-                transform: translateX(-100%);
-                box-shadow: 4px 0 10px rgba(0, 0, 0, 0.4);
-            }
-            .left-panel.active {
-                transform: translateX(0);
-            }
-            .overlay {
-                position: fixed;
-                top: 0;
-                left: 0;
-                width: 100%;
-                height: 100%; 
-                background: rgba(0, 0, 0, 0.4);
-                z-index: 999;
-                display: none;
-            }
-            .overlay.active {
-                display: block;
-            }
-
-            /* Show Mobile Toggle Button */
-            #sidebar_toggle {
-                display: flex !important;
-                margin-right: 10px;
-                background-color: var(--header-bg);
-                color: var(--header-text);
-                width: 38px;
-                height: 38px;
-                border-radius: 50%;
-            }
-            .video-controls-header .title {
-                flex-grow: 1; 
-                text-align: center;
-                white-space: nowrap;
-                overflow: hidden;
-                text-overflow: ellipsis;
-                margin: 0 10px;
-            }
-        }
-        
-        /* Desktop: Hide the toggle button and constrain size */
-        @media (min-width: 769px) {
-            .main-container {
-                width: 95%;
-                height: 95vh;
-                margin: 2.5vh auto;
-                border-radius: 8px;
-            }
-            #sidebar_toggle {
-                display: none !important;
-            }
+        @keyframes pulse {
+            0% { box-shadow: 0 0 0 0 rgba(0, 123, 255, 0.7); }
+            70% { box-shadow: 0 0 0 10px rgba(0, 123, 255, 0); }
+            100% { box-shadow: 0 0 0 0 rgba(0, 123, 255, 0); }
         }
     </style>
 </head>
@@ -474,11 +162,20 @@
                     <button id="videoToggle" onclick="toggleVideo()" title="Камера" disabled>
                         <i class="material-icons">videocam_off</i>
                     </button>
-                    <button id="hangupButton" onclick="hangUp()" title="Завершить приватный P2P" class="red" style="display: none;">
+                    <button id="hangupButton" onclick="hangUp()" title="Завершить P2P сессию" class="red" style="display: none;">
                         <i class="material-icons">call_end</i>
                     </button>
                 </div>
             </div>
+            
+            <div class="call-notification" id="call_notification">
+                <span id="incoming_caller"></span> звонит Вам!
+                <div style="margin-top: 10px;">
+                    <button class="accept" onclick="acceptCall()">Принять</button>
+                    <button class="reject" onclick="rejectCall()">Отклонить</button>
+                </div>
+            </div>
+
 
             <div class="video-grid" id="video_grid">
                 </div>
@@ -502,11 +199,20 @@
         // --- ГЛОБАЛЬНЫЕ ПЕРЕМЕННЫЕ И ЭЛЕМЕНТЫ ---
         let nickname = null;
         let ws = null; // WebSocket для сигнализации и ОБЩЕГО ЧАТА
-        let peer = null; // Один активный P2P-пир для ПРИВАТНОГО ЗВОНКА/ЛС
-        let currentPrivateTarget = null; // Ник пользователя, с которым активен P2P
-        let isVideoActive = false; // Флаг: активен ли сейчас медиа-звонок (P2P Call)
-        let stream = null; // Локальный медиа-поток (всегда готов, но не всегда отправляется)
+        let stream = null; // Локальный медиа-поток (для звонков)
 
+        // Структуры для управления P2P
+        let peers = {
+            chat: null, // P2P для приватного чата (Data Only)
+            call: null  // P2P для звонка (Media Stream)
+        };
+        let activeTargets = {
+            chat: null, // Ник собеседника в активном ЛС
+            call: null  // Ник собеседника в активном звонке
+        };
+        let incomingCallOffer = null; // Сохраняем входящий Offer для принятия/отклонения
+
+        // Элементы UI
         const CHAT_BOX = document.getElementById('chat_box');
         const USER_LIST_BOX = document.getElementById('user_list_box');
         const VIDEO_GRID = document.getElementById('video_grid');
@@ -517,13 +223,16 @@
         const VIDEO_TOGGLE = document.getElementById('videoToggle');
         const MESSAGE_INPUT = document.getElementById('message_input');
         const SEND_BUTTON = document.getElementById('send_button');
-        const LEFT_PANEL = document.getElementById('left_panel');
-        const OVERLAY = document.getElementById('overlay');
+        const CALL_NOTIFICATION = document.getElementById('call_notification');
+        const INCOMING_CALLER = document.getElementById('incoming_caller');
 
         // --- УТИЛИТЫ UI/UX ---
 
         function toggleSidebar(show) {
+            // ... (без изменений)
             if (window.innerWidth > 768) return;
+            const LEFT_PANEL = document.getElementById('left_panel');
+            const OVERLAY = document.getElementById('overlay');
             if (show) {
                 LEFT_PANEL.classList.add('active');
                 OVERLAY.classList.add('active');
@@ -534,6 +243,7 @@
         }
 
         function appendMessage(text, className, sender = null, isPrivate = false) {
+            // ... (без изменений)
             const messageContainer = document.createElement('div');
             messageContainer.className = className;
             
@@ -557,21 +267,57 @@
             CHAT_BOX.prepend(messageContainer); 
         }
         
-        function setChatInputState(isDisabled, isPrivate = false) {
-             MESSAGE_INPUT.disabled = isDisabled;
-             SEND_BUTTON.disabled = isDisabled;
-             
-             if (isDisabled) {
-                MESSAGE_INPUT.placeholder = "Отправка сообщений заблокирована во время звонка.";
-             } else if (isPrivate) {
-                 MESSAGE_INPUT.placeholder = `Приватное сообщение для ${currentPrivateTarget}...`;
-             } else {
+        function setChatInputState() {
+             // Если есть активный звонок, блокируем чат
+             if (activeTargets.call) {
+                 MESSAGE_INPUT.disabled = true;
+                 SEND_BUTTON.disabled = true;
+                 MESSAGE_INPUT.placeholder = "Отправка сообщений заблокирована во время звонка.";
+             } 
+             // Если есть активный приватный чат, переключаем на ЛС
+             else if (activeTargets.chat) {
+                 MESSAGE_INPUT.disabled = false;
+                 SEND_BUTTON.disabled = false;
+                 MESSAGE_INPUT.placeholder = `Приватное сообщение для ${activeTargets.chat}...`;
+             } 
+             // Иначе - общий чат
+             else {
+                 MESSAGE_INPUT.disabled = !nickname; // Доступен, только если залогинен
+                 SEND_BUTTON.disabled = !nickname;
                  MESSAGE_INPUT.placeholder = "Введите сообщение и нажмите Enter";
              }
         }
+        
+        function updateMainUI() {
+             if (activeTargets.call) {
+                 CALL_STATUS_DISPLAY.textContent = `ВИДЕОЗВОНОК: ${activeTargets.call}`;
+                 HANGUP_BUTTON.style.display = 'inline-flex';
+                 // Медиа-кнопки должны быть включены только во время звонка
+                 AUDIO_TOGGLE.disabled = false;
+                 VIDEO_TOGGLE.disabled = false;
+             } else if (activeTargets.chat) {
+                 CALL_STATUS_DISPLAY.textContent = `ПРИВАТНЫЙ ЧАТ (ЛС): ${activeTargets.chat}`;
+                 HANGUP_BUTTON.style.display = 'inline-flex';
+                 // Медиа-кнопки отключены для чата
+                 AUDIO_TOGGLE.disabled = true;
+                 VIDEO_TOGGLE.disabled = true;
+             } else {
+                 CALL_STATUS_DISPLAY.textContent = 'ЧАТ: ОБЩИЙ | Медиа Готово';
+                 HANGUP_BUTTON.style.display = 'none';
+                 // Медиа-кнопки отключены, если нет активного звонка
+                 AUDIO_TOGGLE.disabled = true;
+                 VIDEO_TOGGLE.disabled = true;
+             }
+             
+             // Управление отображением локального видео
+             const localWrapper = document.getElementById('wrapper_local');
+             if (localWrapper) localWrapper.style.display = activeTargets.call ? 'block' : 'none';
 
+             setChatInputState();
+             updateUserList([]); // Перерисовать список, чтобы обновить статусы кнопок
+        }
 
-        // --- 1. УПРАВЛЕНИЕ НИКНЕЙМОМ И WEBSOCKET (ОБЩИЙ ЧАТ/СИГНАЛИЗАЦИЯ) ---
+        // --- 1. УПРАВЛЕНИЕ НИКНЕЙМОМ И WEBSOCKET ---
 
         function saveNickname() {
             const input = document.getElementById('nickname_input');
@@ -586,16 +332,16 @@
             input.disabled = true;
             document.getElementById('nick_button').disabled = true;
             
-            setChatInputState(false); 
             startMedia(); 
+            setChatInputState();
         }
 
         function initializeWebSocket(nick) {
+            // ... (логика подключения WS без изменений)
             if (ws) ws.close();
             
             const protocol = window.location.protocol === 'https:' ? 'wss:' : 'ws:';
             const host = window.location.host;
-            // ПРЕДПОЛАГАЕТСЯ, что сервер сигнализации слушает на /ws
             ws = new WebSocket(`${protocol}//${host}/ws`);
 
             ws.onopen = () => {
@@ -612,22 +358,28 @@
                         break;
                     
                     case 'leave':
-                        if (data.nickname === currentPrivateTarget) {
-                            hangUp(); 
+                        if (data.nickname === activeTargets.chat || data.nickname === activeTargets.call) {
+                            hangUp(data.nickname); 
                         }
                         appendMessage(`[СИСТЕМА] "${data.nickname}" покинул чат.`, 'system-message');
                         break;
 
                     case 'message':
-                        // ОБЩИЙ ЧАТ (через сервер)
                         if (data.from !== nickname) {
                             appendMessage(data.text, 'received-message', data.from);
                         }
                         break;
 
                     case 'signal':
-                        // P2P Сигнализация
-                        handleSignal(data.from, data.signal);
+                        handleSignal(data.from, data.signal, data.channelType);
+                        break;
+                        
+                    case 'call_offer':
+                        handleCallOffer(data.from, data.offer);
+                        break;
+                        
+                    case 'call_reject':
+                        handleCallReject(data.from);
                         break;
                 }
             };
@@ -646,73 +398,61 @@
             const text = MESSAGE_INPUT.value.trim();
             if (!text || !nickname) return;
 
-            // 1. Если активен P2P, но это НЕ звонок (isVideoActive = false), отправляем ЛС
-            if (currentPrivateTarget && peer && peer.connected && !isVideoActive) {
+            // 1. Приватный чат активен
+            if (activeTargets.chat) {
                 sendPrivateMessage(text);
                 return;
             }
             
-            // 2. Если активен P2P-звонок (isVideoActive = true), текстовый чат заблокирован
-            if (isVideoActive) {
-                 // Здесь сообщение не должно доходить, так как input.disabled = true
-                 // Но на всякий случай, если пользователь обходит блокировку:
-                 appendMessage('[СИСТЕМА] Текстовый чат заблокирован во время P2P-звонка.', 'system-message');
+            // 2. Звонок активен (Должно быть заблокировано через UI, но на всякий случай)
+            if (activeTargets.call) {
+                 appendMessage('[СИСТЕМА] Невозможно отправить текст. Активен P2P-звонок.', 'system-message');
                  return;
             }
 
             // 3. ОБЩИЙ ЧАТ (Через WS-сервер)
             if (ws.readyState === WebSocket.OPEN) {
-                 const messageObject = {
-                    type: 'message',
-                    text: text
-                 };
+                 const messageObject = { type: 'message', text: text };
                  ws.send(JSON.stringify(messageObject));
                  appendMessage(text, 'sent-message', nickname);
                  MESSAGE_INPUT.value = '';
-            } else {
-                 appendMessage('[СИСТЕМА] WebSocket не подключен. Невозможно отправить сообщение.', 'system-message');
             }
         }
         
         function sendPrivateMessage(text) {
-            const messageObject = {
-                type: 'private_chat',
-                text: text
-            };
+            if (!peers.chat || !peers.chat.connected) {
+                appendMessage('[СИСТЕМА] Приватный P2P-канал не установлен. Повторите попытку.', 'system-message');
+                // Сбросить, если канал закрыт
+                destroyPeer('chat', activeTargets.chat);
+                return;
+            }
+            
+            const messageObject = { type: 'private_chat', text: text };
 
-            peer.send(JSON.stringify(messageObject));
+            peers.chat.send(JSON.stringify(messageObject));
             appendMessage(text, 'sent-message', nickname, true);
             MESSAGE_INPUT.value = '';
         }
 
-        // --- 3. УПРАВЛЕНИЕ МЕДИА (WebRTC) ---
+        // --- 3. УПРАВЛЕНИЕ МЕДИА ---
 
         async function startMedia() {
             if (stream) return;
-            
             try {
-                // Запрашиваем медиа с поддержкой Data Channel
+                // Запрашиваем медиа-поток для использования в звонках
                 stream = await navigator.mediaDevices.getUserMedia({ 
                     video: { width: { ideal: 640 }, height: { ideal: 480 } }, 
                     audio: true 
                 });
-                
                 addLocalVideo(stream);
-                
-                // Активируем кнопки медиа-контроля
-                AUDIO_TOGGLE.disabled = false;
-                VIDEO_TOGGLE.disabled = false;
-                AUDIO_TOGGLE.innerHTML = '<i class="material-icons">mic</i>';
-                VIDEO_TOGGLE.innerHTML = '<i class="material-icons">videocam</i>';
-
-                CALL_STATUS_DISPLAY.textContent = 'ЧАТ: ОБЩИЙ | Медиа Готово';
-
+                updateMainUI(); // Обновить статус медиа готовности
             } catch (err) {
                 console.error("Ошибка доступа к медиа:", err);
-                CALL_STATUS_DISPLAY.textContent = 'ЧАТ: ОБЩИЙ | Медиа ОТКАЗ';
+                appendMessage("[СИСТЕМА] Ошибка: Нет доступа к камере/микрофону. Звонки невозможны.", 'system-message');
             }
         }
-
+        
+        // ... toggleAudio и toggleVideo (без изменений)
         function toggleAudio() {
             const audioTrack = stream.getAudioTracks()[0];
             if (audioTrack) {
@@ -721,7 +461,6 @@
                 AUDIO_TOGGLE.classList.toggle('red', !audioTrack.enabled);
             }
         }
-        
         function toggleVideo() {
             const videoTrack = stream.getVideoTracks()[0];
             if (videoTrack) {
@@ -730,10 +469,239 @@
                 VIDEO_TOGGLE.classList.toggle('red', !videoTrack.enabled);
             }
         }
+
+        // --- 4. P2P ЛОГИКА (ОБЪЕДИНЕННАЯ) ---
         
-        // --- 4. ВИДЕО UI УПРАВЛЕНИЕ ---
+        function initiateP2P(targetNick, channelType) { // channelType: 'chat' или 'call'
+            if (activeTargets[channelType]) {
+                 appendMessage(`[СИСТЕМА] У вас уже активен ${channelType} с ${activeTargets[channelType]}.`, 'system-message');
+                 return;
+            }
+            if (channelType === 'call' && !stream) {
+                 appendMessage('[СИСТЕМА] Медиа-поток не готов. Проверьте разрешения камеры/микрофона.', 'system-message');
+                 return;
+            }
+
+            activeTargets[channelType] = targetNick;
+            
+            // Если это чат, сразу устанавливаем P2P
+            if (channelType === 'chat') {
+                createPeer(targetNick, true, 'chat');
+                appendMessage(`[СИСТЕМА] Идет установка P2P чат-канала с "${targetNick}"...`, 'system-message');
+                updateMainUI();
+            } 
+            // Если это звонок, отправляем Offer-запрос
+            else if (channelType === 'call') {
+                sendCallOffer(targetNick);
+                appendMessage(`[СИСТЕМА] Отправлен запрос на видеозвонок "${targetNick}". Ожидание ответа...`, 'system-message');
+                updateMainUI();
+            }
+            toggleSidebar(false); 
+        }
+
+        function createPeer(targetNick, initiator, channelType, existingOffer = null) {
+            // Удаляем старый пир, если он существует
+            if (peers[channelType]) {
+                peers[channelType].destroy();
+            }
+
+            const isCall = channelType === 'call';
+            const selectedStream = isCall ? stream : undefined; // Медиа только для звонка
+            
+            peers[channelType] = new SimplePeer({
+                initiator: initiator,
+                stream: selectedStream, 
+                trickle: true,
+                config: { iceServers: [{ urls: 'stun:stun.l.google.com:19302' }] }
+            });
+
+            // 1. SIGNALING
+            peers[channelType].on('signal', data => {
+                if (ws && ws.readyState === WebSocket.OPEN) {
+                    // Отправляем сигнал через WS, указывая тип канала
+                    ws.send(JSON.stringify({ type: 'signal', to: targetNick, signal: data, channelType: channelType }));
+                }
+            });
+            
+            // Применяем существующий offer, если это ответ на звонок
+            if (existingOffer) {
+                 peers[channelType].signal(existingOffer);
+            }
+
+            // 2. CONNECTION ESTABLISHED
+            peers[channelType].on('connect', () => {
+                appendMessage(`[СИСТЕМА P2P] Канал ${channelType.toUpperCase()} с "${targetNick}" установлен.`, 'system-message');
+                updateMainUI();
+            });
+            
+            // 3. MEDIA STREAM (только для звонка)
+            peers[channelType].on('stream', remoteStream => {
+                if (isCall) {
+                    addRemoteVideo(targetNick, remoteStream);
+                }
+            });
+
+            // 4. DATA (только для чата)
+            peers[channelType].on('data', data => {
+                if (channelType === 'chat') {
+                    try {
+                        const message = JSON.parse(data.toString());
+                        if (message.type === 'private_chat') {
+                            appendMessage(message.text, 'received-message', targetNick, true); 
+                        }
+                    } catch (e) { /* ignore non-JSON data */ }
+                }
+            });
+
+            // 5. DISCONNECTION/ERROR
+            peers[channelType].on('close', () => {
+                destroyPeer(channelType, targetNick);
+                appendMessage(`[СИСТЕМА P2P] Канал ${channelType.toUpperCase()} с "${targetNick}" закрыт.`, 'system-message');
+            });
+
+            peers[channelType].on('error', err => {
+                console.error(`[P2P Error ${channelType.toUpperCase()}] с ${targetNick}:`, err);
+                destroyPeer(channelType, targetNick);
+                appendMessage(`[СИСТЕМА P2P] Ошибка связи ${channelType.toUpperCase()} с "${targetNick}".`, 'system-message');
+            });
+        }
+        
+        function handleSignal(fromNick, signalData, channelType) {
+            // Если у нас уже есть активный пир этого типа с этим пользователем
+            if (activeTargets[channelType] === fromNick && peers[channelType]) {
+                peers[channelType].signal(signalData);
+            } 
+            // Это входящий сигнал для Чата (Chat P2P создается немедленно)
+            else if (channelType === 'chat' && signalData.type === 'offer') {
+                if (activeTargets.chat) {
+                    // Отклонить, если уже в чате, но это не должно случиться, если у нас 
+                    // peers[channelType] не null.
+                    return; 
+                }
+                activeTargets.chat = fromNick;
+                // Создаем как респондент, немедленно
+                createPeer(fromNick, false, 'chat', signalData);
+                updateMainUI();
+                appendMessage(`[СИСТЕМА] Входящий приватный чат от "${fromNick}".`, 'system-message');
+            }
+            // Сигнал, который пришел без активного соединения (и это не Offer для чата), игнорируем.
+        }
+
+        // --- 5. ЛОГИКА ЗВОНКА (CALL OFFER/ACCEPT) ---
+        
+        function sendCallOffer(targetNick) {
+            // Создаем пир для звонка, но *не* сразу применяем offer,
+            // просто чтобы сгенерировать его.
+            createPeer(targetNick, true, 'call');
+        }
+        
+        // Перехватываем OFFER для звонка и пересылаем через WS
+        // SimplePeer создаст offer, но мы его не применяем сразу
+        peers.call.on('signal', data => {
+             if (data.type === 'offer') {
+                 ws.send(JSON.stringify({ type: 'call_offer', to: targetNick, offer: data }));
+             } else {
+                 // Обычные сигналы (ICE candidates) отправляем как обычно
+                 ws.send(JSON.stringify({ type: 'signal', to: targetNick, signal: data, channelType: 'call' }));
+             }
+        });
+        
+        function handleCallOffer(fromNick, offer) {
+            if (activeTargets.call) {
+                // Отклоняем, если уже заняты
+                ws.send(JSON.stringify({ type: 'call_reject', to: fromNick, reason: 'Busy' }));
+                appendMessage(`[СИСТЕМА] Отклонен звонок от ${fromNick}. Вы заняты.`, 'system-message');
+                return;
+            }
+            
+            incomingCallOffer = { from: fromNick, offer: offer };
+            INCOMING_CALLER.textContent = fromNick;
+            CALL_NOTIFICATION.style.display = 'block';
+            
+            // Блокируем чат, пока решается вопрос со звонком
+            MESSAGE_INPUT.disabled = true;
+            SEND_BUTTON.disabled = true;
+            appendMessage(`[СИСТЕМА] Входящий звонок от ${fromNick}.`, 'system-message');
+        }
+        
+        function acceptCall() {
+            if (!incomingCallOffer || !stream) return;
+            
+            const { from: caller, offer } = incomingCallOffer;
+            
+            CALL_NOTIFICATION.style.display = 'none';
+            activeTargets.call = caller;
+
+            // 1. Создаем P2P как респондент и сразу применяем Offer
+            createPeer(caller, false, 'call', offer); 
+            
+            // 2. Отправляем подтверждение звонящему
+            ws.send(JSON.stringify({ type: 'call_accept', to: caller }));
+            
+            incomingCallOffer = null;
+            updateMainUI();
+            appendMessage(`[СИСТЕМА] Вы приняли звонок от ${caller}. Соединение P2P Call устанавливается.`, 'system-message');
+        }
+        
+        function rejectCall() {
+            if (!incomingCallOffer) return;
+            
+            const caller = incomingCallOffer.from;
+            ws.send(JSON.stringify({ type: 'call_reject', to: caller, reason: 'Rejected' }));
+            
+            CALL_NOTIFICATION.style.display = 'none';
+            incomingCallOffer = null;
+            updateMainUI(); // Сбрасываем блокировку чата
+            appendMessage(`[СИСТЕМА] Вы отклонили звонок от ${caller}.`, 'system-message');
+        }
+        
+        function handleCallReject(fromNick) {
+            if (activeTargets.call === fromNick) {
+                // Если мы звонили, и нам отклонили
+                destroyPeer('call', fromNick);
+                appendMessage(`[СИСТЕМА] Звонок "${fromNick}" отклонен.`, 'system-message');
+            }
+        }
+        
+        function handleCallAccept(fromNick) {
+             if (activeTargets.call === fromNick) {
+                 // Нам ответили "Принять", P2P уже создан, ждем peer.on('connect')
+                 appendMessage(`[СИСТЕМА] "${fromNick}" принял звонок. Идет установление медиа-связи.`, 'system-message');
+             }
+        }
+
+
+        // --- 6. ОБЩЕЕ ЗАВЕРШЕНИЕ СЕССИИ (HANG UP) ---
+        
+        function destroyPeer(channelType, targetNick) {
+            if (peers[channelType]) {
+                peers[channelType].destroy();
+                peers[channelType] = null;
+                
+                // Удаление удаленного видео, если это звонок
+                if (channelType === 'call') {
+                    removeRemoteVideo(targetNick); 
+                }
+                
+                activeTargets[channelType] = null;
+                updateMainUI();
+            }
+        }
+        
+        function hangUp() {
+            // Сначала завершаем активный звонок, затем чат.
+            if (activeTargets.call) {
+                destroyPeer('call', activeTargets.call);
+            } else if (activeTargets.chat) {
+                destroyPeer('chat', activeTargets.chat);
+            }
+        }
+
+
+        // --- 7. UI УПРАВЛЕНИЕ (ВИДЕО/ПОЛЬЗОВАТЕЛИ) ---
         
         function addLocalVideo(localStream) {
+            // ... (без изменений)
             if (document.getElementById('video_local')) return;
 
             const videoWrapper = document.createElement('div');
@@ -755,14 +723,13 @@
             videoWrapper.appendChild(video);
             videoWrapper.appendChild(label);
             VIDEO_GRID.prepend(videoWrapper); 
-            // Скрываем локальное видео по умолчанию, если это не звонок
             videoWrapper.style.display = 'none'; 
         }
 
         function addRemoteVideo(remoteNick, remoteStream) {
+            // ... (без изменений)
             if (document.getElementById(`video_${remoteNick}`)) return;
 
-            // Показываем локальное видео, когда появляется удаленное
             const localWrapper = document.getElementById('wrapper_local');
             if(localWrapper) localWrapper.style.display = 'block';
 
@@ -786,23 +753,19 @@
         }
 
         function removeRemoteVideo(remoteNick) {
+            // ... (без изменений)
             const wrapper = document.getElementById(`wrapper_${remoteNick}`);
-            if (wrapper) {
-                wrapper.remove();
-            }
-            // Скрываем локальное видео, если нет других удаленных видео
-            if (VIDEO_GRID.querySelectorAll('.video-wrapper').length <= 1) { // 1 - это только локальное
+            if (wrapper) wrapper.remove();
+            
+            if (VIDEO_GRID.querySelectorAll('.video-wrapper').length <= 1) { 
                 const localWrapper = document.getElementById('wrapper_local');
                 if(localWrapper) localWrapper.style.display = 'none';
             }
         }
 
-        // --- 5. УПРАВЛЕНИЕ СПИСКОМ ПОЛЬЗОВАТЕЛЕЙ (UI с кнопками действий) ---
-
         function updateUserList(activeUsers) {
             USER_LIST_BOX.innerHTML = '';
             
-            const isPeerConnected = peer && peer.connected;
             document.getElementById('user_count').textContent = `(${activeUsers.length})`; 
 
             // Добавляем себя
@@ -816,27 +779,30 @@
                 const li = document.createElement('li');
                 li.className = 'user-item';
                 
-                const isTarget = userNick === currentPrivateTarget && isPeerConnected;
-                const connectionStatusColor = isTarget ? 'var(--accent-color)' : 'var(--secondary-text)';
+                const isChatActive = userNick === activeTargets.chat;
+                const isCallActive = userNick === activeTargets.call;
+                
+                // Статус: Зеленый для активного звонка, Синий для активного чата
+                let connectionStatusColor = isCallActive ? 'var(--accent-color)' : (isChatActive ? 'var(--primary-color)' : 'var(--secondary-text)');
                 
                 li.innerHTML = `<span class="status-icon" style="background-color: ${connectionStatusColor};"></span> ${userNick}`;
                 
                 const actions = document.createElement('div');
                 actions.className = 'user-actions';
 
-                // Кнопка P2P-Чата (ЛС) - isVideoCall = false
+                // Кнопка P2P-Чата (ЛС) - channelType = 'chat'
                 const chatBtn = document.createElement('button');
                 chatBtn.innerHTML = '<i class="material-icons">chat</i>';
-                chatBtn.title = isTarget && !isVideoActive ? 'Приватный чат активен' : 'Начать приватный чат (ЛС)';
-                chatBtn.onclick = () => initiateP2P(userNick, false);
-                chatBtn.disabled = isTarget;
+                chatBtn.title = isChatActive ? 'Приватный чат активен' : 'Начать приватный чат (ЛС) - без согласия';
+                chatBtn.onclick = () => initiateP2P(userNick, 'chat');
+                chatBtn.disabled = isChatActive || isCallActive; // Нельзя начать чат, если есть звонок/чат
 
-                // Кнопка P2P-Звонка - isVideoCall = true
+                // Кнопка P2P-Звонка - channelType = 'call'
                 const callBtn = document.createElement('button');
                 callBtn.innerHTML = '<i class="material-icons">videocam</i>';
-                callBtn.title = isTarget && isVideoActive ? 'Видеозвонок активен' : 'Начать видеозвонок';
-                callBtn.onclick = () => initiateP2P(userNick, true);
-                callBtn.disabled = isTarget;
+                callBtn.title = isCallActive ? 'Видеозвонок активен' : 'Начать видеозвонок - требуется согласие';
+                callBtn.onclick = () => initiateP2P(userNick, 'call');
+                callBtn.disabled = isCallActive || isChatActive; // Нельзя начать звонок, если есть звонок/чат
 
                 actions.appendChild(chatBtn);
                 actions.appendChild(callBtn);
@@ -846,182 +812,10 @@
             });
         }
 
-
-        // --- 6. P2P ЛОГИКА (ПРИВАТНЫЙ ЗВОНОК/ЛС) ---
-        
-        function initiateP2P(targetNick, isVideoCall) {
-            if (!stream) {
-                 appendMessage('[СИСТЕМА] Медиа-поток не готов. Проверьте разрешения камеры/микрофона.', 'system-message');
-                 return;
-            }
-            if (currentPrivateTarget && currentPrivateTarget !== targetNick) {
-                alert(`Уже активен P2P с ${currentPrivateTarget}. Сначала завершите текущий звонок.`);
-                return;
-            }
-            if (peer && peer.connected) return;
-
-            if (peer) destroyPeer(currentPrivateTarget);
-
-            currentPrivateTarget = targetNick;
-            isVideoActive = isVideoCall; 
-            
-            // 1. Управление чатом
-            if (isVideoCall) {
-                setChatInputState(true); // Блокируем чат при звонке
-            } else {
-                setChatInputState(false, true); // Чат активен и показывает ЛС-статус
-            }
-            
-            // 2. Создание пира
-            createPeer(targetNick, true, isVideoCall);
-            
-            appendMessage(`[СИСТЕМА P2P] Попытка ${isVideoCall ? 'видеозвонка' : 'приватного чата'} с "${targetNick}"...`, 'system-message');
-            
-            // 3. Обновление UI
-            CALL_STATUS_DISPLAY.textContent = isVideoCall ? `ПРИВАТНЫЙ ЗВОНОК: ${targetNick}` : `ПРИВАТНЫЙ ЧАТ (ЛС): ${targetNick}`;
-            HANGUP_BUTTON.style.display = 'inline-flex';
-            
-            // Показываем/скрываем локальное видео
-            const localWrapper = document.getElementById('wrapper_local');
-            if (localWrapper) localWrapper.style.display = isVideoCall ? 'block' : 'none';
-
-            toggleSidebar(false); 
-        }
-
-        function createPeer(targetNick, initiator, isVideoCall) {
-             const selectedStream = stream.clone(); 
-             
-             // Если это просто чат (ЛС), отключаем видео и аудио треки для отправки, 
-             // чтобы не гонять медиа, но Data Channel все равно заработает.
-             if (!isVideoCall && selectedStream) {
-                 selectedStream.getVideoTracks().forEach(track => track.enabled = false);
-                 selectedStream.getAudioTracks().forEach(track => track.enabled = false);
-             }
-
-            peer = new SimplePeer({
-                initiator: initiator,
-                stream: selectedStream,
-                trickle: true,
-                config: { iceServers: [{ urls: 'stun:stun.l.google.com:19302' }] }
-            });
-
-            // 1. SIGNALING
-            peer.on('signal', data => {
-                if (ws && ws.readyState === WebSocket.OPEN) {
-                    ws.send(JSON.stringify({ type: 'signal', to: targetNick, signal: data }));
-                }
-            });
-
-            // 2. CONNECTION ESTABLISHED
-            peer.on('connect', () => {
-                appendMessage(`[СИСТЕМА P2P] Канал с "${targetNick}" установлен.`, 'system-message');
-                updateUserList([]); 
-            });
-            
-            // 3. MEDIA STREAM (для звонка)
-            peer.on('stream', remoteStream => {
-                addRemoteVideo(targetNick, remoteStream);
-            });
-
-            // 4. DATA (для приватного чата)
-            peer.on('data', data => {
-                try {
-                    const message = JSON.parse(data.toString());
-                    if (message.type === 'private_chat') {
-                        appendMessage(message.text, 'received-message', targetNick, true); 
-                    }
-                } catch (e) {
-                    console.error('Ошибка P2P данных:', e);
-                }
-            });
-
-            // 5. DISCONNECTION/ERROR
-            peer.on('close', () => {
-                destroyPeer(targetNick);
-                appendMessage(`[СИСТЕМА P2P] Канал с "${targetNick}" закрыт.`, 'system-message');
-            });
-
-            peer.on('error', err => {
-                destroyPeer(targetNick);
-                appendMessage(`[СИСТЕМА P2P] Ошибка связи с "${targetNick}".`, 'system-message');
-            });
-        }
-        
-        function handleSignal(fromNick, signalData) {
-            if (fromNick === currentPrivateTarget && peer) {
-                peer.signal(signalData);
-            } else if (signalData.type === 'offer') {
-                if (peer && peer.connected) {
-                    ws.send(JSON.stringify({ type: 'signal', to: fromNick, signal: { type: 'reject' } }));
-                    appendMessage(`[СИСТЕМА] Отклонен входящий запрос от ${fromNick}. Вы заняты.`, 'system-message');
-                    return;
-                }
-                
-                // 1. Принять входящий Offer
-                currentPrivateTarget = fromNick;
-                
-                 // Определяем, есть ли медиа-треки в сигнале (для определения типа звонка)
-                const isVideoCall = signalData.sdp && (signalData.sdp.includes('m=video') || signalData.sdp.includes('m=audio'));
-                isVideoActive = isVideoCall;
-
-                // 2. Управление чатом
-                 if (isVideoCall) {
-                    setChatInputState(true); 
-                 } else {
-                    setChatInputState(false, true); 
-                 }
-
-                // 3. Создание пира
-                createPeer(fromNick, false, isVideoCall); // Создаем как респондент
-                peer.signal(signalData);
-                
-                appendMessage(`[СИСТЕМА] Входящий ${isVideoCall ? 'видеозвонок' : 'чат-запрос'} от "${fromNick}". Соединение устанавливается.`, 'system-message');
-                
-                // 4. Обновление UI
-                CALL_STATUS_DISPLAY.textContent = isVideoCall ? `ПРИВАТНЫЙ ЗВОНОК: ${fromNick}` : `ПРИВАТНЫЙ ЧАТ (ЛС): ${fromNick}`;
-                HANGUP_BUTTON.style.display = 'inline-flex';
-                 // Показываем локальное видео только при звонке
-                const localWrapper = document.getElementById('wrapper_local');
-                if (localWrapper) localWrapper.style.display = isVideoCall ? 'block' : 'none';
-            }
-        }
-
-        function destroyPeer(targetNick) {
-            if (peer) {
-                peer.destroy();
-                peer = null;
-                
-                removeRemoteVideo(targetNick); 
-                
-                // Сброс состояния P2P
-                currentPrivateTarget = null;
-                isVideoActive = false;
-                
-                // Сброс UI
-                CALL_STATUS_DISPLAY.textContent = 'ЧАТ: ОБЩИЙ | Медиа Готово';
-                HANGUP_BUTTON.style.display = 'none';
-                setChatInputState(false); // Разблокируем чат для общего режима
-                
-                // Скрываем локальное видео
-                const localWrapper = document.getElementById('wrapper_local');
-                if (localWrapper) localWrapper.style.display = 'none';
-
-                updateUserList([]);
-            }
-        }
-        
-        function hangUp() {
-            if (peer) {
-                peer.destroy(); 
-            } else {
-                 destroyPeer(currentPrivateTarget); 
-            }
-        }
-
         // Инициализация
         window.onload = () => {
-             appendMessage(`[СИСТЕМА] SECURE P2P CONFERENCE v9.1. Общий чат (WS) и Приватные P2P (WebRTC).`, 'system-message');
-             setChatInputState(true); 
+             appendMessage(`[СИСТЕМА] SECURE P2P CONFERENCE v9.2. Улучшенная логика P2P.`, 'system-message');
+             setChatInputState(); 
         };
 
         // Экспортируем функции
@@ -1032,6 +826,8 @@
         window.toggleVideo = toggleVideo;
         window.sendMessage = sendMessage;
         window.initiateP2P = initiateP2P;
+        window.acceptCall = acceptCall;
+        window.rejectCall = rejectCall;
     </script>
 </body>
 </html>
