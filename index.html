@@ -350,7 +350,12 @@
 
     <script>
         // --- Настройки и переменные ---
-        const socket = io();
+        
+        // !!! ВАЖНО для Render: Подключение к текущему домену
+        const socket = io({
+             transports: ['websocket'] 
+        });
+
         const AES_KEY = 'Это_Очень_Секретный_Ключ_AES'; // Статический ключ для демонстрации
         let myNickname = '';
         let currentRecipient = null; // null = Общий чат
@@ -376,31 +381,26 @@
         /** Шифрует строку с помощью AES */
         function encrypt(text) {
             try {
-                // Используем UTF8 кодировку для ключа
                 const key = CryptoJS.enc.Utf8.parse(AES_KEY);
-                // Шифруем
                 const encrypted = CryptoJS.AES.encrypt(text, key, {
-                    mode: CryptoJS.mode.ECB, // Самый простой режим, без IV
+                    mode: CryptoJS.mode.ECB,
                     padding: CryptoJS.pad.Pkcs7
                 });
-                return encrypted.toString(); // Возвращаем Base64 строку
+                return encrypted.toString();
             } catch (e) {
                 console.error("Ошибка шифрования:", e);
-                return text; // Возвращаем исходный текст, если шифрование не удалось
+                return text;
             }
         }
 
         /** Дешифрует строку с помощью AES */
         function decrypt(encryptedText) {
             try {
-                // Используем UTF8 кодировку для ключа
                 const key = CryptoJS.enc.Utf8.parse(AES_KEY);
-                // Дешифруем
                 const decrypted = CryptoJS.AES.decrypt(encryptedText, key, {
                     mode: CryptoJS.mode.ECB,
                     padding: CryptoJS.pad.Pkcs7
                 });
-                // Возвращаем дешифрованную строку в UTF8
                 return decrypted.toString(CryptoJS.enc.Utf8);
             } catch (e) {
                 console.error("Ошибка дешифрования. Возможно, неверный ключ или данные:", e);
@@ -421,7 +421,6 @@
             const isPrivate = msg.type === 'private';
             const messageDiv = document.createElement('div');
             
-            // Определяем классы
             let classes = ['message'];
             if (isSystem) {
                 classes.push('system');
@@ -434,18 +433,15 @@
             }
             messageDiv.className = classes.join(' ');
 
-            // Дешифруем, если это не системное сообщение
             const content = isSystem ? msg.content : decrypt(msg.content);
             
             if (isSystem) {
                 messageDiv.innerHTML = `<div class="message-content">${content}</div>`;
             } else {
-                // Заголовок (Отправитель)
                 let senderText = isPrivate && isSelf ? `Вы (для ${recipient})` : 
                                  isPrivate && !isSelf ? `🔒 ${msg.sender} (Приватно)` : 
                                  msg.sender;
                 
-                // Содержимое
                 messageDiv.innerHTML = `
                     <div class="message-sender">${senderText}</div>
                     <div class="message-content">${content}</div>
@@ -462,7 +458,6 @@
             lastUserList = users;
             usersList.innerHTML = '';
             
-            // Сортируем: Я (свой ник), затем остальные по алфавиту
             const sortedUsers = users.sort((a, b) => {
                 if (a === myNickname) return -1;
                 if (b === myNickname) return 1;
@@ -475,7 +470,6 @@
                 if (user === myNickname) {
                     li.classList.add('me');
                 } else {
-                    // Обработчик для начала приватного чата
                     li.onclick = () => startPrivateChat(user);
                 }
                 if (user === currentRecipient) {
@@ -493,10 +487,7 @@
             recipientIndicator.style.display = 'block';
             currentRecipientSpan.textContent = recipient;
             
-            // Визуально выделяем получателя в списке
             updateUsersList(lastUserList);
-            
-            // Фокусируем ввод
             messageInput.focus();
         }
         
@@ -506,7 +497,6 @@
             chatHeader.textContent = 'Общий Чат (Default)';
             recipientIndicator.style.display = 'none';
             
-            // Снимаем выделение в списке
             updateUsersList(lastUserList);
         }
 
@@ -526,7 +516,6 @@
             const messageText = messageInput.value.trim();
 
             if (messageText) {
-                // Шифруем сообщение перед отправкой
                 const encryptedContent = encrypt(messageText);
 
                 if (currentRecipient) {
@@ -540,8 +529,8 @@
                     socket.emit('public_message', encryptedContent);
                 }
                 
-                messageInput.value = ''; // Очищаем поле ввода
-                messageInput.style.height = '40px'; // Сбрасываем высоту
+                messageInput.value = '';
+                messageInput.style.height = '40px';
             }
         };
         
@@ -555,7 +544,7 @@
         messageInput.addEventListener('input', function () {
             this.style.height = 'auto'; 
             this.style.height = (this.scrollHeight) + 'px';
-            if (this.scrollHeight > 150) { // Ограничение высоты
+            if (this.scrollHeight > 150) {
                 this.style.height = '150px';
                 this.style.overflowY = 'auto';
             } else {
@@ -586,34 +575,26 @@
 
         // Прием публичного сообщения
         socket.on('public_message', (msg) => {
-            // Если сообщение от себя, добавляем его сразу
-            if (msg.sender === myNickname) {
-                addMessage(msg, true);
-            } else {
-                addMessage(msg);
-            }
+            const isSelf = msg.sender === myNickname;
+            addMessage(msg, isSelf);
         });
 
         // Прием приватного сообщения
         socket.on('private_message', (msg) => {
-            // Проверяем, это копия для отправителя?
             const isSelf = msg.sender === myNickname;
-            const recipientNickname = msg.recipient; // Есть только в копии для отправителя
+            const recipientNickname = msg.recipient;
             
-            // Если это копия для отправителя
             if (isSelf) {
-                // Если мы находимся в чате с этим получателем ИЛИ в общем чате, выводим
+                // Если мы отправитель, показываем, если мы в этом приватном чате или в общем
                 if (currentRecipient === recipientNickname || currentRecipient === null) {
                     addMessage(msg, true, recipientNickname);
                 }
             } else {
-                // Если это сообщение для нас (мы - получатель)
-                
-                // Если отправитель - наш текущий приватный собеседник ИЛИ мы в общем чате
+                // Если мы получатель, показываем, если мы в этом приватном чате или в общем
                 if (currentRecipient === msg.sender || currentRecipient === null) {
                     addMessage(msg, false);
                 } else {
-                    // TODO: Реализовать уведомление о новом приватном сообщении
+                    // Здесь можно добавить мигающий значок или уведомление
                     console.log(`Новое приватное сообщение от ${msg.sender}`);
                 }
             }
