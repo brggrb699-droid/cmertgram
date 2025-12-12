@@ -1,4 +1,5 @@
 // Server: index.js (Node.js)
+// Убедитесь, что у вас установлен модуль ws: npm install ws
 const WebSocket = require('ws');
 const http = require('http');
 const fs = require('fs');
@@ -56,6 +57,8 @@ wss.on('connection', (ws) => {
             console.error('Received non-JSON message:', message);
             return;
         }
+        
+        // 
 
         switch (data.type) {
             case 'join':
