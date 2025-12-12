@@ -10,16 +10,18 @@
     
     <style>
         :root {
-            --color-primary: #FFD700; /* Золотисто-желтый (Заголовки, акценты) */
+            --color-primary: #FFD700; /* Золотисто-желтый (Акцент) */
             --color-secondary: #007FFF; /* Ярко-синий (Кнопки, выделения) */
-            --color-background: #1e1e1e; /* Темный фон приложения */
-            --color-text: #f0f0f0; /* Светлый текст */
+            --color-background: #1e1e1e; /* Темный фон чата */
             --color-panel: #282c34; /* Фон левой панели/карточек */
+            --color-nav: #23272f; /* Фон главной навигации */
+            --color-text: #f0f0f0; /* Светлый текст */
             --color-input: #3a3f4b; /* Фон поля ввода */
             --color-system: #7F7F7F;
-            --color-public-bg: #444444; /* Фон публичных сообщений */
-            --color-private-bg: #007FFF40; /* Фон приватных сообщений */
+            --color-public-bg: #444444; /* Фон публичных сообщений (других) */
             --color-my-message: #007FFF; /* Фон своих сообщений */
+            --color-private-bg: #007FFF40; 
+            --color-nav-active: #3c414c;
         }
         
         body {
@@ -31,10 +33,9 @@
             display: flex;
             height: 100vh;
             overflow: hidden;
-            flex-direction: column;
         }
 
-        /* Общие контейнеры */
+        /* --- Навигация и Сетка --- */
         #registration-screen {
             position: fixed;
             top: 0;
@@ -52,46 +53,75 @@
         
         #chat-container {
             display: none; 
-            flex-direction: row;
             flex-grow: 1;
         }
 
-        /* --- Панель пользователей (Слева) --- */
-        #users-panel {
-            width: 280px;
-            min-width: 280px;
-            background-color: var(--color-panel);
+        /* Главный контейнер (Сетка 3 колонки: Навигация | Пользователи | Чат) */
+        #app-grid {
+            display: grid;
+            grid-template-columns: 80px 250px 1fr; /* Навигация | Пользователи | Чат */
+            height: 100%;
+            width: 100%;
+        }
+
+        /* --- 1. Главная Навигационная панель (Слева, по типу Telegram) --- */
+        #main-nav {
+            background-color: var(--color-nav);
+            border-right: 1px solid #333;
+            display: flex;
+            flex-direction: column;
+            align-items: center;
+            padding-top: 10px;
+            z-index: 50;
+            position: relative;
+        }
+
+        #main-nav .nav-item {
+            width: 100%;
+            text-align: center;
             padding: 15px 0;
+            cursor: pointer;
+            transition: background-color 0.2s;
+            font-size: 20px; /* Иконки */
+            color: var(--color-system);
+        }
+
+        #main-nav .nav-item:hover,
+        #main-nav .nav-item.active {
+            background-color: var(--color-nav-active);
+            color: var(--color-primary);
+        }
+
+        /* --- 2. Панель пользователей/Разделов --- */
+        #users-panel {
+            background-color: var(--color-panel);
             border-right: 1px solid #333;
             overflow-y: auto;
             flex-shrink: 0;
             position: relative;
-            transition: transform 0.3s ease;
+            z-index: 40;
         }
 
-        #users-panel h3 {
+        #users-panel .header {
+            padding: 15px;
             color: var(--color-primary);
-            padding: 0 15px;
-            margin-top: 0;
-            border-bottom: 1px solid var(--color-secondary);
-            padding-bottom: 10px;
-            margin-bottom: 15px;
+            font-size: 1.1em;
+            font-weight: bold;
+            border-bottom: 1px solid #333;
         }
 
         #users-list {
             list-style: none;
-            padding: 0 15px;
+            padding: 0;
             margin: 0;
         }
 
         #users-list li {
-            padding: 10px;
-            margin-bottom: 5px;
-            background-color: var(--color-panel);
-            border-radius: 5px;
+            padding: 10px 15px;
+            margin: 0;
             cursor: pointer;
             transition: background-color 0.2s;
-            color: var(--color-text);
+            border-left: 3px solid transparent;
         }
 
         #users-list li:hover {
@@ -107,38 +137,51 @@
         #users-list li.selected {
             background-color: var(--color-secondary);
             color: white;
+            border-left: 3px solid var(--color-primary);
         }
         
-        /* --- Панель чата (Справа) --- */
+        /* --- 3. Панель Чата --- */
         #main-chat {
-            flex-grow: 1;
             display: flex;
             flex-direction: column;
+            background-color: var(--color-background);
             position: relative;
         }
         
-        #chat-header {
-            padding: 15px;
+        /* Верхняя панель чата */
+        #chat-top-header {
             background-color: var(--color-panel);
-            color: var(--color-primary);
+            border-bottom: 1px solid #333;
+            padding: 10px 15px;
+            display: flex;
+            justify-content: space-between;
+            align-items: center;
+            font-size: 1.1em;
             font-weight: bold;
-            border-bottom: 1px solid var(--color-secondary);
-            text-align: center;
-            position: relative; /* Для кнопки мобильного меню */
+            color: var(--color-primary);
         }
         
-        /* Кнопка меню для мобильных */
-        #menu-button {
-            display: none;
-            position: absolute;
-            left: 10px;
-            top: 50%;
-            transform: translateY(-50%);
-            background: none;
+        #chat-controls button {
+            background: var(--color-input);
+            color: var(--color-text);
             border: none;
-            color: var(--color-primary);
-            font-size: 24px;
+            padding: 5px 10px;
+            border-radius: 5px;
+            margin-left: 5px;
             cursor: pointer;
+            transition: background-color 0.2s;
+        }
+        
+        #chat-controls button.active,
+        #chat-controls button:hover {
+            background-color: var(--color-secondary);
+            color: white;
+        }
+
+        #chat-subtitle {
+             padding: 5px 15px;
+             font-size: 0.8em;
+             color: var(--color-system);
         }
 
         #messages {
@@ -147,28 +190,27 @@
             overflow-y: auto;
             display: flex;
             flex-direction: column;
-            background-color: var(--color-background);
         }
 
-        /* --- Сообщения --- */
+        /* --- Сообщения (как на скриншоте) --- */
         .message {
-            max-width: 70%;
+            max-width: 65%; /* Уменьшаем ширину */
             margin-bottom: 10px;
-            padding: 10px 15px;
+            padding: 8px 12px;
             border-radius: 15px;
             line-height: 1.4;
             word-wrap: break-word;
-            box-shadow: 0 1px 3px rgba(0, 0, 0, 0.2);
+            box-shadow: 0 1px 3px rgba(0, 0, 0, 0.3);
         }
 
-        /* Общие сообщения (Другие) */
+        /* Сообщения других пользователей */
         .message.public {
             background-color: var(--color-public-bg);
             align-self: flex-start;
             border-bottom-left-radius: 5px;
         }
         
-        /* Общие сообщения (Свои) */
+        /* Свои сообщения */
         .message.public.self {
             background-color: var(--color-my-message);
             align-self: flex-end;
@@ -176,7 +218,7 @@
             border-bottom-right-radius: 5px;
         }
 
-        /* Приватные сообщения */
+        /* Приватные сообщения других */
         .message.private {
             background-color: var(--color-private-bg);
             border: 1px solid var(--color-secondary);
@@ -185,6 +227,7 @@
             border-bottom-left-radius: 5px;
         }
         
+        /* Свои приватные сообщения */
         .message.private.self {
             align-self: flex-end;
             background-color: var(--color-my-message);
@@ -192,61 +235,43 @@
             border-bottom-right-radius: 5px;
         }
         
-        /* Системные сообщения */
-        .message.system {
-            align-self: center;
-            background-color: transparent;
-            color: var(--color-system);
-            text-align: center;
-            font-style: italic;
-            padding: 5px;
-        }
-
         .message-sender {
-            font-weight: bold;
-            font-size: 0.9em;
-            color: var(--color-primary);
-            margin-bottom: 5px;
-        }
-
-        .message.public.self .message-sender,
-        .message.private.self .message-sender {
-            color: white;
+            display: none; /* Скрываем отправителя, чтобы соответствовать скриншоту */
         }
 
         .message-time {
             display: block;
             margin-top: 5px;
             font-size: 0.7em;
-            color: #ccc;
+            color: rgba(255, 255, 255, 0.6);
             text-align: right;
         }
 
-        /* --- Панель ввода --- */
-        #input-form {
-            display: flex;
-            padding: 10px 15px;
+        /* --- Панель ввода (Нижняя) --- */
+        #input-panel {
             background-color: var(--color-panel);
             border-top: 1px solid #333;
+            padding: 10px 15px;
+            display: flex;
+            flex-direction: column;
+        }
+
+        #input-form {
+            display: flex;
+            padding: 5px 0;
         }
 
         #message-input {
             flex-grow: 1;
             padding: 10px;
             border: 1px solid #555;
-            border-radius: 20px; /* Скругленные углы */
+            border-radius: 5px; 
             background-color: var(--color-input);
-            color: var(--color-text); /* **Текст теперь светлый и контрастный** */
+            color: var(--color-text); 
             font-size: 16px;
             resize: none;
             height: 40px;
             box-sizing: border-box;
-            transition: border-color 0.3s;
-        }
-
-        #message-input:focus {
-            border-color: var(--color-secondary);
-            outline: none;
         }
 
         #input-form button {
@@ -255,72 +280,75 @@
             color: white;
             padding: 10px 15px;
             border: none;
-            border-radius: 20px;
+            border-radius: 5px;
             cursor: pointer;
             font-size: 16px;
-            transition: background-color 0.3s;
         }
 
-        #input-form button:hover {
-            background-color: #006ED0;
-        }
-
-        /* --- Меню действий (Context Menu) --- */
-        #user-action-menu {
-            position: fixed; 
-            background-color: var(--color-input);
-            border: 1px solid var(--color-secondary);
-            border-radius: 5px;
-            box-shadow: 0 4px 8px rgba(0, 0, 0, 0.5);
-            z-index: 1001;
-            display: none;
-            padding: 5px 0;
-            min-width: 150px;
-        }
-        
-        #user-action-menu button {
-            /* Стили кнопок меню */
-        }
-
-
-        /* ================================================= */
-        /* === АДАПТИВНЫЙ ДИЗАЙН (MOBILE RESPONSIVENESS) === */
-        /* ================================================= */
-        
+        /* --- Адаптивность --- */
         @media (max-width: 768px) {
-            /* Скрываем панель пользователей по умолчанию */
-            #users-panel {
-                position: absolute;
+            #app-grid {
+                /* На мобильных Главная навигация и Панель пользователей занимают 100% ширины экрана, 
+                   но только если они "активны" (открыты) */
+                grid-template-columns: 0 0 1fr;
+            }
+
+            #main-nav {
+                position: fixed;
+                left: 0;
+                top: 0;
                 height: 100%;
-                z-index: 50;
                 transform: translateX(-100%);
+                transition: transform 0.3s ease;
             }
             
-            /* Класс для отображения панели пользователей */
-            #users-panel.active {
-                transform: translateX(0);
-                box-shadow: 4px 0 10px rgba(0, 0, 0, 0.5);
+            #users-panel {
+                position: fixed;
+                left: 80px; /* С учетом ширины main-nav */
+                top: 0;
+                height: 100%;
+                transform: translateX(-100%);
+                transition: transform 0.3s ease;
             }
             
-            /* Отображаем кнопку меню для мобильных */
-            #menu-button {
+            /* Классы для отображения панелей на мобильных */
+            #main-nav.active { transform: translateX(0); }
+            #users-panel.active { transform: translateX(0); }
+
+            #chat-top-header {
+                padding-left: 50px; /* Место для кнопки меню */
+            }
+            
+            /* Скрываем кнопки управления чатом на мобильных */
+            #chat-controls {
+                 display: none;
+            }
+            
+            #menu-button-chat { /* Кнопка меню чата (показывает users-panel) */
                 display: block;
+                position: absolute;
+                left: 10px;
+                top: 50%;
+                transform: translateY(-50%);
+                background: none;
+                border: none;
+                color: var(--color-primary);
+                font-size: 24px;
+                cursor: pointer;
             }
-            
-            /* Регулируем отступы в заголовке чата, чтобы избежать конфликта с кнопкой меню */
-            #chat-header {
-                padding-left: 50px;
-            }
-            
-            /* Уменьшаем максимальную ширину сообщений, чтобы они не занимали 100% ширины экрана */
-            .message {
-                max-width: 90%;
-            }
-            
-            /* Скрываем индикатор приватного чата, если он мешает */
-            #recipient-indicator {
-                left: 5%;
-                right: 5%;
+
+             #menu-button-nav { /* Кнопка меню навигации (показывает main-nav) */
+                display: block;
+                position: absolute;
+                left: 10px;
+                top: 50%;
+                transform: translateY(-50%);
+                background: none;
+                border: none;
+                color: var(--color-primary);
+                font-size: 24px;
+                cursor: pointer;
+                z-index: 100; /* Выше chat-top-header */
             }
         }
     </style>
@@ -328,50 +356,68 @@
 <body>
 
     <div id="user-action-menu">
-        </div>
+        <button onclick="startPrivateChat(this.dataset.user); hideActionMenu();">💬 Сообщение</button>
+        <button onclick="startCall(this.dataset.user); hideActionMenu();">📞 Звонок (Заглушка)</button>
+    </div>
 
     <div id="registration-screen">
         <h1>CmertGram</h1>
-        <p>Выберите ваш никнейм (без пароля/email):</p>
+        <p>Выберите ваш никнейм:</p>
         <input type="text" id="nickname-input" placeholder="Ваш никнейм" maxlength="15">
         <button id="register-button">Войти в чат</button>
         <div id="registration-error"></div>
     </div>
 
     <div id="chat-container">
-        <div id="users-panel">
-            <h3>👥 Онлайн Пользователи</h3>
-            <ul id="users-list">
-                </ul>
-        </div>
-
-        <div id="main-chat">
-            <button id="menu-button" title="Показать пользователей">☰</button>
-            <div id="chat-header">
-                Общий Чат (Default)
-            </div>
+        <div id="app-grid">
             
-            <div id="recipient-indicator">
-                Вы пишете: <span id="current-recipient"></span>. <a href="#" id="exit-private" style="color: var(--color-background); text-decoration: none;">[X] Вернуться в Общий</a>
-            </div>
-
-            <div id="messages">
+            <div id="main-nav">
+                <div class="nav-item active" id="nav-users" title="Пользователи">👤</div>
+                <div class="nav-item" title="Меню">☰</div>
+                <div class="nav-item" title="Настройки">⚙️</div>
                 </div>
 
-            <form id="input-form">
-                <textarea id="message-input" placeholder="Введите ваше сообщение..." rows="1"></textarea>
-                <button type="submit">Отправить</button>
-            </form>
+            <div id="users-panel">
+                <div class="header">Users panel</div>
+                <ul id="users-list">
+                    </ul>
+                <button id="menu-button-nav" style="display: none;">☰</button>
+            </div>
+
+            <div id="main-chat">
+                 <button id="menu-button-chat" style="display: none;">☰</button>
+                <div id="chat-top-header">
+                    <span id="chat-title">#chat Schat</span>
+                    <div id="chat-controls">
+                        <button class="active" data-mode="general">General</button>
+                        <button data-mode="private" disabled>Private</button>
+                    </div>
+                </div>
+                
+                <div id="chat-subtitle">
+                    #iponyene.sibtyltg.Talhana.Geneal@socket.s(1.0)...
+                </div>
+                
+                <div id="messages">
+                    </div>
+
+                <div id="input-panel">
+                    <div id="recipient-indicator" style="display: none;">
+                        Вы пишете: <span id="current-recipient"></span>. 
+                        <a href="#" id="exit-private" style="color: var(--color-secondary); text-decoration: none;">[X] Вернуться в Общий</a>
+                    </div>
+                    <form id="input-form">
+                        <textarea id="message-input" placeholder="#message-input" rows="1"></textarea>
+                        <button type="submit">Send</button>
+                    </form>
+                </div>
+            </div>
         </div>
     </div>
 
     <script>
         // --- Настройки и переменные ---
-        
-        const socket = io({
-             transports: ['websocket'] 
-        });
-
+        const socket = io({ transports: ['websocket'] });
         const AES_KEY = 'Это_Очень_Секретный_Ключ_AES'; 
         let myNickname = '';
         let currentRecipient = null; 
@@ -380,95 +426,59 @@
         // --- DOM элементы ---
         const regScreen = document.getElementById('registration-screen');
         const chatContainer = document.getElementById('chat-container');
-        const nicknameInput = document.getElementById('nickname-input');
-        const registerButton = document.getElementById('register-button');
-        const regError = document.getElementById('registration-error');
-        const usersPanel = document.getElementById('users-panel'); // Для адаптивности
-        const menuButton = document.getElementById('menu-button'); // Для адаптивности
+        const usersPanel = document.getElementById('users-panel');
+        const mainNav = document.getElementById('main-nav');
         const usersList = document.getElementById('users-list');
         const messagesDiv = document.getElementById('messages');
         const inputForm = document.getElementById('input-form');
         const messageInput = document.getElementById('message-input');
-        const chatHeader = document.getElementById('chat-header');
+        const chatTitle = document.getElementById('chat-title');
         const recipientIndicator = document.getElementById('recipient-indicator');
         const currentRecipientSpan = document.getElementById('current-recipient');
         const exitPrivateLink = document.getElementById('exit-private');
         const actionMenu = document.getElementById('user-action-menu');
-
-        // Глобальный обработчик для скрытия меню
-        document.addEventListener('click', (e) => {
-            if (actionMenu.style.display === 'block' && !actionMenu.contains(e.target) && !e.target.closest('#users-list li:not(.me)')) {
-                actionMenu.style.display = 'none';
-            }
-        });
+        const menuButtonChat = document.getElementById('menu-button-chat');
+        const menuButtonNav = document.getElementById('menu-button-nav');
         
         // --- Crypto (Шифрование/Дешифрование) ---
-        
         function encrypt(text) {
             try {
                 const key = CryptoJS.enc.Utf8.parse(AES_KEY);
-                const encrypted = CryptoJS.AES.encrypt(text, key, {
-                    mode: CryptoJS.mode.ECB,
-                    padding: CryptoJS.pad.Pkcs7
-                });
+                const encrypted = CryptoJS.AES.encrypt(text, key, { mode: CryptoJS.mode.ECB, padding: CryptoJS.pad.Pkcs7 });
                 return encrypted.toString();
-            } catch (e) {
-                console.error("Ошибка шифрования:", e);
-                return text;
-            }
+            } catch (e) { return text; }
         }
 
         function decrypt(encryptedText) {
             try {
                 const key = CryptoJS.enc.Utf8.parse(AES_KEY);
-                const decrypted = CryptoJS.AES.decrypt(encryptedText, key, {
-                    mode: CryptoJS.mode.ECB,
-                    padding: CryptoJS.pad.Pkcs7
-                });
+                const decrypted = CryptoJS.AES.decrypt(encryptedText, key, { mode: CryptoJS.mode.ECB, padding: CryptoJS.pad.Pkcs7 });
                 return decrypted.toString(CryptoJS.enc.Utf8);
-            } catch (e) {
-                console.error("Ошибка дешифрования. Возможно, неверный ключ или данные:", e);
-                return `[НЕ МОЖЕТ БЫТЬ ДЕШИФРОВАНО: ${encryptedText.substring(0, 30)}...]`;
-            }
+            } catch (e) { return `[НЕ МОЖЕТ БЫТЬ ДЕШИФРОВАНО: ${encryptedText.substring(0, 30)}...]`; }
         }
 
         // --- Функции UI ---
         
         function showUserActionMenu(user, event) {
-            actionMenu.style.display = 'none'; 
-            
-            actionMenu.innerHTML = `
-                <button onclick="startPrivateChat('${user}'); hideActionMenu();">💬 Сообщение</button>
-                <button onclick="startCall('${user}'); hideActionMenu();">📞 Звонок (Заглушка)</button>
-            `;
-            
+            actionMenu.style.display = 'block'; 
             actionMenu.style.top = `${event.clientY}px`;
             
-            // Расчет позиции меню, чтобы оно не выходило за правый край
-            const menuWidth = 150; 
+            const menuWidth = 200; 
             if (event.clientX + menuWidth > window.innerWidth) {
                  actionMenu.style.left = `${window.innerWidth - menuWidth - 10}px`;
             } else {
                  actionMenu.style.left = `${event.clientX}px`;
             }
-
-            actionMenu.style.display = 'block';
+            
+            // Обновляем данные для кнопок
+            actionMenu.querySelector('button:nth-child(1)').dataset.user = user;
+            actionMenu.querySelector('button:nth-child(2)').dataset.user = user;
             
             event.preventDefault(); 
         }
 
         function hideActionMenu() {
             actionMenu.style.display = 'none';
-        }
-        
-        function startCall(recipient) {
-            const time = new Date().toLocaleTimeString('ru-RU', { hour: '2-digit', minute: '2-digit' });
-            const msg = {
-                 type: 'system', 
-                 sender: 'Система', 
-                 content: `📞 Вы пытаетесь позвонить пользователю **${recipient}**... (Функция не реализована). Время: ${time}` 
-            };
-            addMessage(msg, true);
         }
 
         function scrollToBottom() {
@@ -493,19 +503,15 @@
             messageDiv.className = classes.join(' ');
 
             const content = isSystem ? msg.content : decrypt(msg.content);
+            const time = msg.timestamp || new Date().toLocaleTimeString('ru-RU', { hour: '2-digit', minute: '2-digit' });
             
             if (isSystem) {
                 const formattedContent = content.replace(/\*\*(.*?)\*\*/g, '<strong>$1</strong>');
                 messageDiv.innerHTML = `<div class="message-content">${formattedContent}</div>`;
             } else {
-                let senderText = isPrivate && isSelf ? `Вы (для ${recipient})` : 
-                                 isPrivate && !isSelf ? `🔒 ${msg.sender} (Приватно)` : 
-                                 msg.sender;
-                
                 messageDiv.innerHTML = `
-                    <div class="message-sender">${senderText}</div>
                     <div class="message-content">${content}</div>
-                    <div class="message-time">${msg.timestamp}</div>
+                    <div class="message-time">${time}</div>
                 `;
             }
 
@@ -529,17 +535,8 @@
                 if (user === myNickname) {
                     li.classList.add('me');
                 } else {
-                    // Обработчик контекстного меню (правая/левая кнопка мыши)
                     li.oncontextmenu = (e) => showUserActionMenu(user, e); 
-                    li.onclick = (e) => {
-                        // На мобильных устройствах, показать меню действий
-                        if (window.innerWidth <= 768) {
-                            showUserActionMenu(user, e);
-                        } else {
-                            // На ПК, начинаем приватный чат сразу по клику
-                            startPrivateChat(user);
-                        }
-                    };
+                    li.onclick = (e) => startPrivateChat(user);
                 }
                 if (user === currentRecipient) {
                      li.classList.add('selected');
@@ -551,14 +548,18 @@
         function startPrivateChat(recipient) {
             if (recipient === myNickname) return;
             currentRecipient = recipient;
-            chatHeader.textContent = `Приватный Чат с ${recipient}`;
+            chatTitle.textContent = `#private ${recipient}`;
             recipientIndicator.style.display = 'block';
             currentRecipientSpan.textContent = recipient;
+            
+            // Обновление кнопок режима чата
+            document.querySelector('#chat-controls button[data-mode="general"]').classList.remove('active');
+            document.querySelector('#chat-controls button[data-mode="private"]').classList.add('active');
             
             updateUsersList(lastUserList);
             messageInput.focus();
             
-            // Скрыть панель пользователей на мобильных после выбора
+            // Скрыть панель пользователей на мобильных
             if (window.innerWidth <= 768) {
                 usersPanel.classList.remove('active');
             }
@@ -566,22 +567,20 @@
         
         function exitPrivateChat() {
             currentRecipient = null;
-            chatHeader.textContent = 'Общий Чат (Default)';
+            chatTitle.textContent = `#chat Schat`;
             recipientIndicator.style.display = 'none';
+            
+            // Обновление кнопок режима чата
+            document.querySelector('#chat-controls button[data-mode="general"]').classList.add('active');
+            document.querySelector('#chat-controls button[data-mode="private"]').classList.remove('active');
             
             updateUsersList(lastUserList);
         }
 
         // --- Обработчики событий DOM ---
 
-        // Адаптивность: переключение панели пользователей
-        menuButton.onclick = () => {
-            usersPanel.classList.toggle('active');
-        };
-        
-        // Регистрация
-        registerButton.onclick = () => {
-            const nickname = nicknameInput.value.trim();
+        document.getElementById('register-button').onclick = () => {
+            const nickname = document.getElementById('nickname-input').value.trim();
             if (nickname) {
                 socket.emit('register', nickname);
             }
@@ -615,30 +614,42 @@
             exitPrivateChat();
         };
 
-        // Автоматическое изменение высоты textarea
-        messageInput.addEventListener('input', function () {
-            this.style.height = 'auto'; 
-            this.style.height = (this.scrollHeight) + 'px';
-            if (this.scrollHeight > 150) {
-                this.style.height = '150px';
-                this.style.overflowY = 'auto';
-            } else {
-                this.style.overflowY = 'hidden';
+        // Переключение режимов чата (кнопки General/Private)
+        document.getElementById('chat-controls').addEventListener('click', (e) => {
+            if (e.target.tagName === 'BUTTON') {
+                const mode = e.target.dataset.mode;
+                if (mode === 'general' && currentRecipient) {
+                    exitPrivateChat();
+                } 
+                // Private mode может быть активирован только через выбор пользователя в списке
             }
         });
+        
+        // Адаптивность: переключение панели пользователей/главной навигации
+        menuButtonChat.onclick = () => {
+            usersPanel.classList.toggle('active');
+            mainNav.classList.remove('active'); // Закрываем основную навигацию при открытии списка пользователей
+        };
+        
+        menuButtonNav.onclick = () => {
+            mainNav.classList.toggle('active');
+            usersPanel.classList.remove('active'); // Закрываем список пользователей при открытии навигации
+        };
+
 
         // --- Обработчики Socket.io ---
 
         socket.on('registration_success', (nickname) => {
             myNickname = nickname;
             regScreen.style.display = 'none';
-            chatContainer.style.display = 'flex';
-            chatHeader.textContent = `Общий Чат (Ваш ник: ${myNickname})`;
+            chatContainer.style.display = 'block'; // Используем block для сетки
+            chatTitle.textContent = `#chat Schat`;
+            document.getElementById('chat-controls').querySelector('button[data-mode="general"]').classList.add('active');
             messageInput.focus();
         });
 
         socket.on('registration_error', (error) => {
-            regError.textContent = error;
+            document.getElementById('registration-error').textContent = error;
         });
 
         socket.on('user_list', (users) => {
@@ -652,21 +663,16 @@
 
         socket.on('private_message', (msg) => {
             const isSelf = msg.sender === myNickname;
-            const recipientNickname = msg.recipient;
+            const targetRecipient = isSelf ? msg.recipient : msg.sender;
             
-            // Если сообщение для меня, и у меня открыт чат с отправителем ИЛИ открыт общий чат
-            if (!isSelf && (currentRecipient === msg.sender || currentRecipient === null)) {
-                 addMessage(msg, false);
+            // Если сообщение для текущего чата (от меня или для меня)
+            if (currentRecipient === targetRecipient || currentRecipient === null) {
+                 addMessage(msg, isSelf, targetRecipient);
             } 
-            // Если это мое отправленное сообщение, и открыт чат с получателем ИЛИ открыт общий чат
-            else if (isSelf && (currentRecipient === recipientNickname || currentRecipient === null)) {
-                 addMessage(msg, true, recipientNickname);
-            }
-            
-            // Если пришло новое приватное сообщение, но открыт другой чат
-            else if (!isSelf && currentRecipient !== msg.sender) {
-                 // Тут можно добавить логику уведомления (например, подсветить отправителя в списке)
-                 console.log(`Новое приватное сообщение от ${msg.sender}. Покажу уведомление.`);
+            // В противном случае, это уведомление
+            else {
+                 console.log(`Новое приватное сообщение от ${msg.sender}.`);
+                 // Здесь может быть добавлена логика мигания пользователя в списке
             }
         });
         
